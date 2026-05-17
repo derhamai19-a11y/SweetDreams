@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isHouseholdMember(householdId) {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/adults/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/adults/$(request.auth.uid)).data.householdId == householdId;
+    }
+    
+    function isAdmin(householdId) {
+      return isHouseholdMember(householdId) &&
+        get(/databases/$(database)/documents/adults/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    match /households/{householdId} {
+      allow read: if isHouseholdMember(householdId);
+      allow create: if isSignedIn();
+      allow update: if isAdmin(householdId);
+      allow delete: if isAdmin(householdId);
+    }
+    
+    match /adults/{adultId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == adultId;
+      allow update: if request.auth.uid == adultId || 
+        (resource != null && isAdmin(resource.data.householdId));
+      allow delete: if resource != null && isAdmin(resource.data.householdId);
+    }
+    
+    match /children/{childId} {
+      allow read: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow create: if isSignedIn() && isAdmin(request.resource.data.householdId);
+      allow update: if isAdmin(resource.data.householdId);
+      allow delete: if isAdmin(resource.data.householdId);
+    }
+    
+    match /achievements/{achievementId} {
+      allow read: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow create: if isSignedIn() && isHouseholdMember(request.resource.data.householdId);
+      allow update: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow delete: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+    }
+    
+    match /dailyReviews/{reviewId} {
+      allow read: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow create: if isSignedIn() && isHouseholdMember(request.resource.data.householdId);
+      allow update: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+    }
+    
+    match /tonightsPrep/{prepId} {
+      allow read: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow create: if isSignedIn() && isHouseholdMember(request.resource.data.householdId);
+      allow update: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow delete: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+    }
+  }
+}
