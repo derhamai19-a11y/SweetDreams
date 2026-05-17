@@ -6,7 +6,7 @@ import {
   signOut as fbSignOut
 } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
-import { auth, db } from '../firebase/config'
+import { auth, db, firebaseConfigured } from '../firebase/config'
 
 const AuthContext = createContext(null)
 
@@ -14,8 +14,15 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [adultProfile, setAdultProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
+    if (!firebaseConfigured) {
+      setError(new Error('Firebase is not configured. Set VITE_FIREBASE_* values in Netlify Build Environment or local .env files.'))
+      setLoading(false)
+      return
+    }
+
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       setUser(fbUser)
       if (fbUser) {
@@ -40,13 +47,28 @@ export function AuthProvider({ children }) {
     setAdultProfile(snap.exists() ? { id: snap.id, ...snap.data() } : null)
   }
 
-  const signIn = (email, password) => signInWithEmailAndPassword(auth, email, password)
-  const signUp = (email, password) => createUserWithEmailAndPassword(auth, email, password)
-  const signOut = () => fbSignOut(auth)
+  const ensureConfigured = () => {
+    if (!firebaseConfigured) {
+      throw new Error('Firebase is not configured. Set VITE_FIREBASE_* env vars in Netlify Build Environment or local .env files.')
+    }
+  }
+
+  const signIn = (email, password) => {
+    ensureConfigured()
+    return signInWithEmailAndPassword(auth, email, password)
+  }
+  const signUp = (email, password) => {
+    ensureConfigured()
+    return createUserWithEmailAndPassword(auth, email, password)
+  }
+  const signOut = () => {
+    ensureConfigured()
+    return fbSignOut(auth)
+  }
 
   return (
     <AuthContext.Provider value={{ 
-      user, adultProfile, loading, signIn, signUp, signOut, refreshProfile 
+      user, adultProfile, loading, error, signIn, signUp, signOut, refreshProfile 
     }}>
       {children}
     </AuthContext.Provider>
