@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { doc, updateDoc, addDoc, collection, serverTimestamp, increment, deleteDoc, writeBatch } from 'firebase/firestore'
+import { doc, updateDoc, setDoc, serverTimestamp, increment, deleteDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useHousehold } from '../../contexts/HouseholdContext'
 
@@ -75,7 +75,8 @@ export default function ReviewFlow() {
     setSubmitting(true)
     try {
       const today = new Date().toISOString().slice(0, 10)
-      await addDoc(collection(db, 'dailyReviews'), {
+      // Deterministic ID: overwrite if review already done today
+      await setDoc(doc(db, 'dailyReviews', `${householdId}_${today}`), {
         householdId,
         childId: child.id,
         date: today,

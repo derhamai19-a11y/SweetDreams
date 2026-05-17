@@ -38,7 +38,16 @@ export default function MemoryBook() {
       setSelected(null)
     } catch (err) {
       console.error('Delete error:', err)
-      alert('Could not delete. Try again?')
+      const code = err?.code || ''
+      if (code === 'permission-denied' || code.includes('permission')) {
+        alert(
+          'Delete failed: Firestore permission denied.\n\n' +
+          'Fix: go to Firebase Console → Firestore → Rules and ensure:\n\n' +
+          'allow read, write: if request.auth != null;'
+        )
+      } else {
+        alert(`Could not delete: ${err?.message || 'Try again?'}`)
+      }
     }
   }
 
