@@ -67,13 +67,9 @@ export default function HouseholdSetup() {
     setError('')
     try {
       const code = inviteCode.trim()
-      const hhSnap = await getDoc(doc(db, 'households', code))
-      if (!hhSnap.exists()) {
-        setError('Invite code not found')
-        setBusy(false)
-        return
-      }
-      
+
+      // Create adult doc first — Firestore rules require household membership to
+      // read a household doc, so we must exist in adults before we can verify the code.
       await setDoc(doc(db, 'adults', user.uid), {
         householdId: code,
         email: user.email,
@@ -82,12 +78,20 @@ export default function HouseholdSetup() {
         role: 'standard',
         joinedAt: serverTimestamp(),
       })
-      
+
+      // Now verify the household exists (we're now a "member" so the read is allowed)
+      const hhSnap = await getDoc(doc(db, 'households', code))
+      if (!hhSnap.exists()) {
+        setError('Invite code not found — double-check and try again')
+        setBusy(false)
+        return
+      }
+
       await refreshProfile()
       nav('/')
     } catch (err) {
       console.error(err)
-      setError('Could not join household. Check the code?')
+      setError(`Could not join: ${err?.message || 'Check the code and try again'}`)
     } finally {
       setBusy(false)
     }
