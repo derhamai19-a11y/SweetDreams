@@ -1,17 +1,75 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useHousehold } from '../../contexts/HouseholdContext'
+import { uploadPhoto, resizeImage } from '../../utils/storage'
 import Page from '../../components/Page'
-import PhotoUpload from '../../components/PhotoUpload'
 import { FRIEND_AVATAR } from '../../utils/constants'
 
-const PERSON_EMOJIS = [
-  '👨','👩','🧔','👴','👵','🧑','👦','👧','🧒',
-  '🙋‍♂️','🙋‍♀️','🧙‍♂️','🧙‍♀️','🦸','🧚','🤗','🎅','🤶',
-  '🧑‍🍳','🧑‍🎨','🧑‍💻','🧑‍🏫','🧑‍🔬','👑',
+// Base person emojis — click to optionally apply a skin tone
+const BASE_PERSON_EMOJIS = ['👨','👩','🧑','👦','👧','🧒','👴','👵','🧔']
+const OTHER_EMOJIS = ['🙋‍♂️','🙋‍♀️','🧙‍♂️','🧙‍♀️','🦸','🤗','🎅','🤶','🧑‍🍳','🧑‍🎨','🧑‍💻','🧑‍🏫','👑','🐶']
+const SKIN_TONES = [
+  { label: 'Default', mod: '' },
+  { label: 'Light', mod: '🏻' },
+  { label: 'Medium-light', mod: '🏼' },
+  { label: 'Medium', mod: '🏽' },
+  { label: 'Medium-dark', mod: '🏾' },
+  { label: 'Dark', mod: '🏿' },
 ]
+
+function PersonEmojiPicker({ value, onSelect }) {
+  const [pending, setPending] = useState(null)
+
+  const pick = (emoji) => {
+    if (BASE_PERSON_EMOJIS.includes(emoji)) {
+      setPending(emoji) // show skin tone options
+    } else {
+      onSelect(emoji)
+    }
+  }
+
+  if (pending) {
+    return (
+      <div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>
+          Choose skin tone for {pending}:
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          {SKIN_TONES.map(({ label, mod }) => (
+            <button key={label} onClick={() => { onSelect(pending + mod); setPending(null) }}
+              style={{
+                fontSize: 28, width: 46, height: 46, borderRadius: 10,
+                background: 'var(--midnight-soft)', border: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+              {pending + mod}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => setPending(null)} style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          ← Back
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
+      {[...BASE_PERSON_EMOJIS, ...OTHER_EMOJIS].map(e => (
+        <button key={e} onClick={() => pick(e)}
+          style={{
+            fontSize: 26, padding: 6, borderRadius: 8,
+            background: value === e ? 'rgba(255,213,132,0.2)' : 'transparent',
+            border: value === e ? '1px solid var(--star-gold)' : '1px solid transparent',
+          }}>
+          {e}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export default function TonightPrep() {
   const { householdId, household, adults, tonightPrep } = useHousehold()
@@ -26,7 +84,10 @@ export default function TonightPrep() {
   const [showAddPerson, setShowAddPerson] = useState(false)
   const [newPersonName, setNewPersonName] = useState('')
   const [newPersonEmoji, setNewPersonEmoji] = useState('👤')
+  const [newPersonPhoto, setNewPersonPhoto] = useState(null)
   const [showPersonEmoji, setShowPersonEmoji] = useState(false)
+  const [uploadingPersonPhoto, setUploadingPersonPhoto] = useState(false)
+  const personPhotoRef = useRef(null)
 
   useEffect(() => {
     if (tonightPrep) {
@@ -45,12 +106,36 @@ export default function TonightPrep() {
     )
   }
 
+  const handlePersonPhoto = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingPersonPhoto(true)
+    try {
+      const resized = await resizeImage(file)
+      const url = await uploadPhoto(resized, householdId, 'grateful-people')
+      setNewPersonPhoto(url)
+      setNewPersonEmoji('👤') // clear emoji when photo set
+    } catch (err) {
+      console.error(err)
+      const code = err?.code || ''
+      if (code.includes('unauthorized') || code.includes('permission')) {
+        alert('Upload failed: Firebase Storage permission denied. Update your Storage Rules to allow authenticated writes.')
+      } else {
+        alert('Could not upload photo. Try again?')
+      }
+    } finally {
+      setUploadingPersonPhoto(false)
+      e.target.value = ''
+    }
+  }
+
   const addPerson = async () => {
     if (!newPersonName.trim()) return
     const person = {
       id: `custom_${Date.now()}`,
       name: newPersonName.trim(),
-      emoji: newPersonEmoji,
+      emoji: newPersonPhoto ? null : newPersonEmoji,
+      photoUrl: newPersonPhoto || null,
     }
     await updateDoc(doc(db, 'households', householdId), {
       gratefulPeople: arrayUnion(person),
@@ -58,6 +143,7 @@ export default function TonightPrep() {
     setGratefulIds(prev => [...prev, person.id])
     setNewPersonName('')
     setNewPersonEmoji('👤')
+    setNewPersonPhoto(null)
     setShowAddPerson(false)
     setShowPersonEmoji(false)
   }
@@ -145,7 +231,6 @@ export default function TonightPrep() {
                       background: 'var(--midnight-deep)', border: '1px solid var(--border)',
                       color: 'var(--text-muted)', fontSize: 14, fontWeight: 700,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      lineHeight: 1,
                     }}>×</button>
                   )}
                 </div>
@@ -170,46 +255,85 @@ export default function TonightPrep() {
               background: 'var(--surface)', borderRadius: 14,
               border: '1px solid var(--border)',
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 10, letterSpacing: '0.08em' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 12, letterSpacing: '0.08em' }}>
                 ADD A PERSON
               </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
-                <button onClick={() => setShowPersonEmoji(!showPersonEmoji)}
-                  style={{
-                    fontSize: 28, width: 48, height: 48, flexShrink: 0,
-                    background: 'var(--midnight-soft)', borderRadius: 12,
-                    border: '1px solid var(--border)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                  {newPersonEmoji}
-                </button>
+
+              {/* Photo or emoji selector row */}
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+                {/* Photo upload */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <input type="file" accept="image/*" ref={personPhotoRef}
+                    style={{ display: 'none' }} onChange={handlePersonPhoto}/>
+                  <button onClick={() => personPhotoRef.current?.click()}
+                    disabled={uploadingPersonPhoto}
+                    style={{
+                      width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
+                      background: newPersonPhoto
+                        ? `url(${newPersonPhoto}) center/cover`
+                        : 'var(--midnight-soft)',
+                      border: newPersonPhoto ? '2px solid var(--star-gold)' : '2px dashed var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 22,
+                    }}>
+                    {uploadingPersonPhoto ? '...' : (!newPersonPhoto && '📷')}
+                  </button>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>PHOTO</span>
+                </div>
+
+                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>or</div>
+
+                {/* Emoji selector */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <button onClick={() => setShowPersonEmoji(!showPersonEmoji)}
+                    style={{
+                      fontSize: 32, width: 56, height: 56, flexShrink: 0,
+                      background: 'var(--midnight-soft)', borderRadius: '50%',
+                      border: (!newPersonPhoto && newPersonEmoji !== '👤') ? '2px solid var(--star-gold)' : '2px dashed var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    {newPersonEmoji}
+                  </button>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>EMOJI</span>
+                </div>
+
                 <input
                   className="field-input"
                   value={newPersonName}
                   onChange={e => setNewPersonName(e.target.value)}
-                  placeholder="Their name (Nanna, Grandpa…)"
+                  placeholder="Their name"
                   style={{ flex: 1 }}
                 />
               </div>
+
               {showPersonEmoji && (
                 <div style={{
-                  marginBottom: 10, padding: 10,
+                  marginBottom: 12, padding: 10,
                   background: 'var(--midnight-soft)', borderRadius: 12,
-                  display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4,
+                  border: '1px solid var(--border)',
                 }}>
-                  {PERSON_EMOJIS.map(e => (
-                    <button key={e} onClick={() => { setNewPersonEmoji(e); setShowPersonEmoji(false) }}
-                      style={{ fontSize: 24, padding: 6, borderRadius: 8 }}>{e}</button>
-                  ))}
+                  <PersonEmojiPicker
+                    value={newPersonEmoji}
+                    onSelect={(e) => {
+                      setNewPersonEmoji(e)
+                      setNewPersonPhoto(null)
+                      setShowPersonEmoji(false)
+                    }}
+                  />
                 </div>
               )}
+
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={addPerson} disabled={!newPersonName.trim()}
                   className="btn-primary" style={{ flex: 1 }}>
                   Add
                 </button>
-                <button onClick={() => { setShowAddPerson(false); setNewPersonName(''); setShowPersonEmoji(false) }}
-                  className="btn-secondary" style={{ flex: 1 }}>
+                <button onClick={() => {
+                  setShowAddPerson(false)
+                  setNewPersonName('')
+                  setNewPersonPhoto(null)
+                  setShowPersonEmoji(false)
+                }} className="btn-secondary" style={{ flex: 1 }}>
                   Cancel
                 </button>
               </div>
@@ -241,8 +365,10 @@ export default function TonightPrep() {
               </div>
             ))}
             {memoryPhotos.length < 3 && (
-              <PhotoUpload householdId={householdId} folder="memories"
-                onUploaded={addMemory} size={90} label={`+ Photo`}/>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                {/* Reuse PhotoUpload but we need to add memory photos differently */}
+                <MemoryPhotoUpload householdId={householdId} onUploaded={addMemory}/>
+              </div>
             )}
           </div>
         </div>
@@ -263,5 +389,43 @@ export default function TonightPrep() {
         </button>
       </div>
     </Page>
+  )
+}
+
+// Inline memory photo upload (square, not circle)
+function MemoryPhotoUpload({ householdId, onUploaded }) {
+  const [uploading, setUploading] = useState(false)
+  const ref = useRef(null)
+
+  const handle = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !householdId) return
+    setUploading(true)
+    try {
+      const resized = await resizeImage(file)
+      const url = await uploadPhoto(resized, householdId, 'memories')
+      onUploaded(url)
+    } catch (err) {
+      console.error(err)
+      alert('Could not upload photo. Try again?')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <>
+      <input type="file" accept="image/*" ref={ref} style={{ display: 'none' }} onChange={handle}/>
+      <button onClick={() => ref.current?.click()} disabled={uploading} style={{
+        width: 90, height: 90, borderRadius: 14,
+        background: 'var(--surface)', border: '2px dashed var(--border)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 4, color: 'var(--text-soft)', fontSize: 12, fontWeight: 600,
+      }}>
+        <span style={{ fontSize: 24 }}>📷</span>
+        {uploading ? '...' : '+ Photo'}
+      </button>
+    </>
   )
 }

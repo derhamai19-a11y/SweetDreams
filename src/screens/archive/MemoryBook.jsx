@@ -33,9 +33,13 @@ export default function MemoryBook() {
   }, [householdId])
 
   const handleDelete = async (review) => {
-    if (!confirm('Delete this memory? This cannot be undone.')) return
-    await deleteDoc(doc(db, 'dailyReviews', review.id))
-    setSelected(null)
+    try {
+      await deleteDoc(doc(db, 'dailyReviews', review.id))
+      setSelected(null)
+    } catch (err) {
+      console.error('Delete error:', err)
+      alert('Could not delete. Try again?')
+    }
   }
 
   const fmt = (d) => {
@@ -112,6 +116,7 @@ export default function MemoryBook() {
 }
 
 function MemoryDetail({ review, onClose, onDelete }) {
+  const [confirming, setConfirming] = useState(false)
   const feeling = FEELINGS.find(f => f.id === review.feeling)
   const fmt = (d) => {
     const [y, m, day] = d.split('-').map(Number)
@@ -158,11 +163,25 @@ function MemoryDetail({ review, onClose, onDelete }) {
           {review.tomorrowsGoal && <Row label="Goal">{review.tomorrowsGoal}</Row>}
         </div>
 
+        {confirming ? (
+          <div style={{ marginTop: 24, padding: 14, background: 'rgba(240,128,112,0.12)', borderRadius: 12, border: '1px solid var(--rose)', textAlign: 'center' }}>
+            <p style={{ fontSize: 14, marginBottom: 12, color: 'var(--text)' }}>Delete this memory forever?</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={onDelete} style={{
+                flex: 1, padding: '10px', borderRadius: 10,
+                background: 'var(--rose)', color: 'white', fontWeight: 700, fontSize: 14,
+              }}>Yes, delete</button>
+              <button onClick={() => setConfirming(false)} className="btn-secondary" style={{ flex: 1 }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
         <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
           <button onClick={onClose} className="btn-secondary" style={{ flex: 1 }}>
             Close
           </button>
-          <button onClick={onDelete} style={{
+          <button onClick={() => setConfirming(true)} style={{
             flex: 1, padding: '12px', borderRadius: 12,
             background: 'transparent', color: 'var(--rose)',
             border: '1px solid var(--rose)', fontWeight: 700, fontSize: 14,
@@ -170,6 +189,7 @@ function MemoryDetail({ review, onClose, onDelete }) {
             Delete
           </button>
         </div>
+        )}
       </div>
     </div>
   )

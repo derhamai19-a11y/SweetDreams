@@ -16,6 +16,12 @@ export default function PhotoUpload({
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!householdId) {
+      alert('Cannot upload yet — please refresh and try again.')
+      return
+    }
+
     const prevPreview = localPreview
     setUploading(true)
     try {
@@ -29,8 +35,19 @@ export default function PhotoUpload({
       onUploaded?.(url)
     } catch (err) {
       console.error('Upload error:', err)
-      setLocalPreview(prevPreview) // revert so it doesn't look uploaded
-      alert('Could not upload photo — check your internet connection and try again.')
+      setLocalPreview(prevPreview)
+      const code = err?.code || ''
+      if (code === 'storage/unauthorized' || code === 'storage/unauthenticated' || code.includes('permission')) {
+        alert(
+          'Upload failed: Firebase Storage permission denied.\n\n' +
+          'Fix: go to Firebase Console → Storage → Rules and set:\n\n' +
+          'allow read, write: if request.auth != null;'
+        )
+      } else if (code === 'storage/unknown' || code.includes('network') || err?.message?.includes('network')) {
+        alert('Upload failed: network error. Check your internet connection and try again.')
+      } else {
+        alert(`Upload failed${err?.message ? ': ' + err.message : '. Check your internet connection and try again.'}`)
+      }
     } finally {
       setUploading(false)
     }
@@ -53,6 +70,7 @@ export default function PhotoUpload({
           width: size, height: size,
           borderRadius: '50%',
           background: localPreview ? `url(${localPreview}) center/cover` : 'var(--surface)',
+          backgroundSize: 'cover',
           border: '2px dashed var(--border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--text-soft)', fontSize: 12, fontWeight: 600,

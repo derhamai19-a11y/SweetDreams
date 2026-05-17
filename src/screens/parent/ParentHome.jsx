@@ -123,7 +123,7 @@ export default function ParentHome() {
                         background: `url(${a.photoUrl}) center/cover`,
                       }}/>
                     ) : (
-                      <div style={{ fontSize: 28, flexShrink: 0 }}>{cat?.emoji}</div>
+                      <div style={{ fontSize: 28, flexShrink: 0 }}>{a.emoji || cat?.emoji}</div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: cat?.color }}>{cat?.label}</div>
@@ -196,51 +196,137 @@ export default function ParentHome() {
 function RewardPath({ household }) {
   const path = household?.rewardsPath || []
   const coins = household?.currentCoins || 0
+  const [expanded, setExpanded] = useState(null)
   if (path.length === 0) return null
 
   return (
     <div style={{ marginBottom: 10 }}>
       <div className="card" style={{ padding: '16px 18px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontFamily: 'var(--display)', fontSize: 18, fontWeight: 500 }}>Reward path</div>
           <div style={{ fontSize: 13, color: 'var(--star-gold)', fontWeight: 700 }}>
             ⭐ {coins} coin{coins === 1 ? '' : 's'}
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {path.map((r) => {
-            const unlocked = coins >= r.threshold
-            return (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {path.map((r, i) => {
+          const prevThreshold = i === 0 ? 0 : path[i - 1].threshold
+          const segmentSize = Math.max(1, r.threshold - prevThreshold)
+          const coinsInSegment = Math.max(0, Math.min(coins - prevThreshold, segmentSize))
+          const starsFilled = coins >= r.threshold ? 10 : Math.floor((coinsInSegment / segmentSize) * 10)
+          const unlocked = coins >= r.threshold
+
+          return (
+            <div key={r.id}>
+              {/* 10-star track for this segment */}
+              <div style={{ display: 'flex', gap: 2, justifyContent: 'center', marginBottom: 8 }}>
+                {Array.from({ length: 10 }).map((_, si) => (
+                  <span key={si} style={{
+                    fontSize: 15,
+                    filter: si < starsFilled ? 'none' : 'grayscale(1) opacity(0.18)',
+                    display: 'inline-block',
+                  }}>⭐</span>
+                ))}
+              </div>
+
+              {/* Reward card — tappable */}
+              <button onClick={() => setExpanded(r)} style={{
+                width: '100%', borderRadius: 14, overflow: 'hidden', display: 'block',
+                border: `2px solid ${unlocked ? 'var(--star-gold)' : 'rgba(255,244,218,0.12)'}`,
+                background: 'none', cursor: 'pointer', textAlign: 'left',
+                boxShadow: unlocked ? '0 0 16px rgba(255,213,132,0.22)' : 'none',
+                marginBottom: 14,
+              }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                  height: 110, position: 'relative',
                   background: r.photoUrl
                     ? `url(${r.photoUrl}) center/cover`
                     : unlocked
-                      ? 'linear-gradient(135deg, var(--star-gold), var(--star-warm))'
-                      : 'var(--surface)',
-                  border: unlocked ? '2px solid var(--star-gold)' : '2px solid var(--border)',
+                      ? 'linear-gradient(135deg, rgba(255,213,132,0.25), rgba(255,185,122,0.25))'
+                      : 'rgba(255,244,218,0.04)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 22,
-                  filter: !unlocked ? 'grayscale(0.5) opacity(0.6)' : 'none',
-                  overflow: 'hidden',
-                }}>{!r.photoUrl && r.emoji}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontWeight: 700, fontSize: 14,
-                    color: unlocked ? 'var(--star-gold)' : 'var(--text)',
-                  }}>{r.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {unlocked ? '✓ Unlocked!' : `${r.threshold - coins} coin${r.threshold - coins === 1 ? '' : 's'} to go`}
-                  </div>
+                  fontSize: 52,
+                  filter: !unlocked ? 'grayscale(0.5) opacity(0.65)' : 'none',
+                }}>
+                  {!r.photoUrl && r.emoji}
+                  {!unlocked && r.photoUrl && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(7,12,26,0.45)' }}/>
+                  )}
+                  {unlocked && (
+                    <span style={{
+                      position: 'absolute', top: 8, right: 8,
+                      background: 'var(--star-gold)', color: 'var(--midnight)',
+                      borderRadius: 20, padding: '2px 9px',
+                      fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
+                    }}>✓ UNLOCKED</span>
+                  )}
                 </div>
-                {unlocked && <span style={{ fontSize: 18 }}>🌟</span>}
-              </div>
-            )
-          })}
-        </div>
+                <div style={{
+                  padding: '9px 13px', background: 'rgba(255,244,218,0.04)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: unlocked ? 'var(--star-gold)' : 'var(--text)' }}>
+                      {r.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
+                      {unlocked ? '🌟 You earned this!' : `${r.threshold - coins} coin${r.threshold - coins === 1 ? '' : 's'} to go`}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 14, opacity: 0.35 }}>↗</span>
+                </div>
+              </button>
+            </div>
+          )
+        })}
       </div>
+
+      {/* Lightbox */}
+      {expanded && (
+        <div onClick={() => setExpanded(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(15,23,41,0.96)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 24, animation: 'fadeIn 0.2s ease',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 360, animation: 'scaleIn 0.25s ease',
+          }}>
+            <div style={{
+              borderRadius: 20, overflow: 'hidden',
+              border: `3px solid ${coins >= expanded.threshold ? 'var(--star-gold)' : 'rgba(255,244,218,0.15)'}`,
+              boxShadow: coins >= expanded.threshold ? '0 0 48px rgba(255,213,132,0.4)' : 'none',
+            }}>
+              <div style={{
+                height: 300,
+                background: expanded.photoUrl
+                  ? `url(${expanded.photoUrl}) center/cover`
+                  : coins >= expanded.threshold
+                    ? 'linear-gradient(135deg, var(--star-gold), var(--star-warm))'
+                    : 'var(--midnight-soft)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 90,
+              }}>
+                {!expanded.photoUrl && expanded.emoji}
+              </div>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 18 }}>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 26, fontWeight: 500 }}>{expanded.name}</div>
+              <div style={{
+                fontSize: 15, marginTop: 6,
+                color: coins >= expanded.threshold ? 'var(--star-gold)' : 'var(--text-soft)',
+              }}>
+                {coins >= expanded.threshold
+                  ? '🌟 You unlocked this!'
+                  : `${expanded.threshold - coins} more coin${expanded.threshold - coins === 1 ? '' : 's'} needed`}
+              </div>
+              <button onClick={() => setExpanded(null)} className="btn-secondary" style={{ width: '100%', marginTop: 16 }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
