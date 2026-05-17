@@ -54,7 +54,7 @@ export default function RewardsSetup() {
       <div style={{ paddingTop: 40, animation: 'fadeIn 0.5s ease' }}>
         <h1 className="page-title">Rewards path</h1>
         <p className="page-subtitle">
-          These light up as your little one earns coins. You can change these anytime — and tweak the thresholds if they're earning too fast or slow.
+          These light up as your little one earns stars. You can change these anytime — and tweak the thresholds if they're earning too fast or slow.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 32 }}>
@@ -144,7 +144,7 @@ function RewardEditor({ reward, index, onChange, onRemove, householdId }) {
             <input type="number" min="1" className="field-input" value={reward.threshold}
               onChange={e => onChange('threshold', e.target.value)}
               style={{ width: 80, padding: '8px 12px' }}/>
-            <span style={{ fontSize: 13, color: 'var(--text-soft)' }}>coins</span>
+            <span style={{ fontSize: 13, color: 'var(--text-soft)' }}>stars</span>
             <button onClick={onRemove} style={{
               marginLeft: 'auto', color: 'var(--rose)', fontSize: 13, fontWeight: 600
             }}>Remove</button>

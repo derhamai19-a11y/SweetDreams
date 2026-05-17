@@ -35,7 +35,7 @@ export default function PathStep({ next, household }) {
           }}>
             <span style={{ fontSize: 28 }}>⭐</span>
             <span style={{ fontWeight: 800, fontSize: 26, color: 'var(--star-gold)' }}>{coins}</span>
-            <span style={{ fontSize: 15, color: 'var(--text-soft)' }}>coin{coins === 1 ? '' : 's'}</span>
+            <span style={{ fontSize: 15, color: 'var(--text-soft)' }}>star{coins === 1 ? '' : 's'}</span>
           </div>
         </div>
 
@@ -120,7 +120,7 @@ export default function PathStep({ next, household }) {
                   <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
                     {unlocked
                       ? '🎉 You earned this!'
-                      : `${r.threshold - coins} more coin${r.threshold - coins === 1 ? '' : 's'} to unlock`}
+                      : `${r.threshold - coins} more star${r.threshold - coins === 1 ? '' : 's'} to unlock`}
                   </div>
                 </div>
               </button>
@@ -174,7 +174,7 @@ export default function PathStep({ next, household }) {
               }}>
                 {coins >= expanded.threshold
                   ? '🌟 You unlocked this!'
-                  : `${expanded.threshold - coins} more coin${expanded.threshold - coins === 1 ? '' : 's'} needed`}
+                  : `${expanded.threshold - coins} more star${expanded.threshold - coins === 1 ? '' : 's'} needed`}
               </div>
               <button onClick={() => setExpanded(null)} className="btn-secondary" style={{ width: '100%', marginTop: 20 }}>
                 Close

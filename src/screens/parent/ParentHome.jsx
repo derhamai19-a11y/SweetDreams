@@ -87,7 +87,7 @@ export default function ParentHome() {
           <div style={{ flex: 1 }}>
             <h2 style={{ fontFamily: 'var(--display)', fontSize: 28, fontWeight: 500, marginBottom: 2 }}>{child?.name}</h2>
             <div style={{ fontSize: 14, color: 'var(--text-soft)' }}>
-              {household?.currentCoins || 0} coin{household?.currentCoins === 1 ? '' : 's'} on the path
+              {household?.currentCoins || 0} star{household?.currentCoins === 1 ? '' : 's'} on the path
             </div>
           </div>
         </div>
@@ -205,7 +205,7 @@ function RewardPath({ household }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontFamily: 'var(--display)', fontSize: 18, fontWeight: 500 }}>Reward path</div>
           <div style={{ fontSize: 13, color: 'var(--star-gold)', fontWeight: 700 }}>
-            ⭐ {coins} coin{coins === 1 ? '' : 's'}
+            ⭐ {coins} star{coins === 1 ? '' : 's'}
           </div>
         </div>
 
@@ -270,7 +270,7 @@ function RewardPath({ household }) {
                       {r.name}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
-                      {unlocked ? '🌟 You earned this!' : `${r.threshold - coins} coin${r.threshold - coins === 1 ? '' : 's'} to go`}
+                      {unlocked ? '🌟 You earned this!' : `${r.threshold - coins} star${r.threshold - coins === 1 ? '' : 's'} to go`}
                     </div>
                   </div>
                   <span style={{ fontSize: 14, opacity: 0.35 }}>↗</span>
@@ -318,7 +318,7 @@ function RewardPath({ household }) {
               }}>
                 {coins >= expanded.threshold
                   ? '🌟 You unlocked this!'
-                  : `${expanded.threshold - coins} more coin${expanded.threshold - coins === 1 ? '' : 's'} needed`}
+                  : `${expanded.threshold - coins} more star${expanded.threshold - coins === 1 ? '' : 's'} needed`}
               </div>
               <button onClick={() => setExpanded(null)} className="btn-secondary" style={{ width: '100%', marginTop: 16 }}>
                 Close
@@ -387,7 +387,7 @@ function AchievementEditModal({ editing, onChange, onSave, onClose }) {
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <label className="field-label">Coins</label>
+          <label className="field-label">Stars</label>
           <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
             {[1, 2, 3, 5].map(n => (
               <button key={n} onClick={() => onChange({ editCoins: n })}

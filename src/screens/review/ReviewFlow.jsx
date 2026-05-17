@@ -33,6 +33,7 @@ export default function ReviewFlow() {
   const [stepIndex, setStepIndex] = useState(0)
   const [reviewData, setReviewData] = useState({
     feeling: null,
+    feelingNote: null,
     proudMoment: null,
     gratefulFor: null,
     memoryPhotoUrl: null,
@@ -80,6 +81,7 @@ export default function ReviewFlow() {
         childId: child.id,
         date: today,
         feeling: reviewData.feeling,
+        feelingNote: reviewData.feelingNote,
         proudMoment: reviewData.proudMoment,
         gratefulFor: reviewData.gratefulFor,
         memoryPhotoUrl: reviewData.memoryPhotoUrl,

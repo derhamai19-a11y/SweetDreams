@@ -158,7 +158,7 @@ function AchievementDetail({ achievement, onClose, child }) {
         }}>
           <span style={{ fontSize: 22 }}>⭐</span>
           <span style={{ fontWeight: 700, color: 'var(--star-gold)' }}>
-            +{achievement.coinsValue || 1} coin{(achievement.coinsValue || 1) > 1 ? 's' : ''}
+            +{achievement.coinsValue || 1} star{(achievement.coinsValue || 1) > 1 ? 's' : ''}
           </span>
         </div>
         

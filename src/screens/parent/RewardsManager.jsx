@@ -83,7 +83,7 @@ export default function RewardsManager() {
 
         <h1 className="page-title">Rewards path</h1>
         <p className="page-subtitle">
-          {household?.currentCoins || 0} coins earned so far. Adjust thresholds if needed.
+          {household?.currentCoins || 0} star{household?.currentCoins === 1 ? '' : 's'} earned so far. Adjust thresholds if needed.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28 }}>
@@ -170,7 +170,7 @@ function RewardCard({ reward, index, total, currentCoins, onChange, onRemove, on
             <input type="number" min="1" className="field-input" value={reward.threshold}
               onChange={e => onChange('threshold', e.target.value)}
               style={{ width: 60, padding: '6px 10px' }}/>
-            <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>coins</span>
+            <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>stars</span>
             {reached && <span style={{ fontSize: 11, color: 'var(--star-gold)', fontWeight: 700, marginLeft: 'auto' }}>✓ Unlocked</span>}
           </div>
         </div>

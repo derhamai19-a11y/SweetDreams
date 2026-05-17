@@ -38,16 +38,8 @@ export default function MemoryBook() {
       setSelected(null)
     } catch (err) {
       console.error('Delete error:', err)
-      const code = err?.code || ''
-      if (code === 'permission-denied' || code.includes('permission')) {
-        alert(
-          'Delete failed: Firestore permission denied.\n\n' +
-          'Fix: go to Firebase Console → Firestore → Rules and ensure:\n\n' +
-          'allow read, write: if request.auth != null;'
-        )
-      } else {
-        alert(`Could not delete: ${err?.message || 'Try again?'}`)
-      }
+      const code = err?.code || 'unknown'
+      alert(`Delete failed [${code}]: ${err?.message || 'Try again?'}`)
     }
   }
 
@@ -168,6 +160,7 @@ function MemoryDetail({ review, onClose, onDelete }) {
               <span style={{ fontSize: 15, color: feeling.color }}>{feeling.label}</span>
             </Row>
           )}
+          {review.feelingNote && <Row label="Why">{review.feelingNote}</Row>}
           {review.proudMoment && <Row label="Proud of">{review.proudMoment}</Row>}
           {review.tomorrowsGoal && <Row label="Goal">{review.tomorrowsGoal}</Row>}
         </div>

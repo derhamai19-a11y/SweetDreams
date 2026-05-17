@@ -145,9 +145,9 @@ export default function LogAchievement() {
           </div>
         </div>
 
-        {/* Coins */}
+        {/* Stars */}
         <div style={{ marginTop: 24 }}>
-          <label className="field-label">Coins to award</label>
+          <label className="field-label">Stars to award</label>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {[1, 2, 3, 5].map(n => (
               <button key={n} onClick={() => setCoinsValue(n)}
@@ -163,7 +163,7 @@ export default function LogAchievement() {
             ))}
           </div>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, textAlign: 'center' }}>
-            Most things are worth 1. Bump it for something extra special.
+            Most things earn 1 star. Bump it for something extra special.
           </p>
         </div>
 

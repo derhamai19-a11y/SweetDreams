@@ -407,7 +407,18 @@ function MemoryPhotoUpload({ householdId, onUploaded }) {
       onUploaded(url)
     } catch (err) {
       console.error(err)
-      alert('Could not upload photo. Try again?')
+      const code = err?.code || ''
+      if (code === 'storage/unauthorized' || code === 'storage/unauthenticated' || code.includes('permission')) {
+        alert(
+          'Upload failed: Firebase Storage permission denied.\n\n' +
+          'Fix: go to Firebase Console → Storage → Rules and set:\n\n' +
+          'allow read, write: if request.auth != null;'
+        )
+      } else if (code.includes('network') || err?.message?.includes('network')) {
+        alert('Upload failed: network error. Check your connection and try again.')
+      } else {
+        alert(`Upload failed [${code || 'unknown'}]: ${err?.message || 'Try again?'}`)
+      }
     } finally {
       setUploading(false)
       e.target.value = ''
