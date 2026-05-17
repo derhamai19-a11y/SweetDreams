@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react'
 import { uploadPhoto, resizeImage } from '../utils/storage'
 
-export default function PhotoUpload({ 
-  householdId, 
-  folder = 'photos', 
-  onUploaded, 
-  preview, 
+export default function PhotoUpload({
+  householdId,
+  folder = 'photos',
+  onUploaded,
+  preview,
   size = 100,
   label = 'Add photo'
 }) {
@@ -16,9 +16,11 @@ export default function PhotoUpload({
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const prevPreview = localPreview
     setUploading(true)
     try {
       const resized = await resizeImage(file)
+      // Show local preview immediately while uploading
       const reader = new FileReader()
       reader.onload = (ev) => setLocalPreview(ev.target.result)
       reader.readAsDataURL(resized)
@@ -27,7 +29,8 @@ export default function PhotoUpload({
       onUploaded?.(url)
     } catch (err) {
       console.error('Upload error:', err)
-      alert('Could not upload photo. Try again?')
+      setLocalPreview(prevPreview) // revert so it doesn't look uploaded
+      alert('Could not upload photo — check your internet connection and try again.')
     } finally {
       setUploading(false)
     }
@@ -35,9 +38,9 @@ export default function PhotoUpload({
 
   return (
     <div>
-      <input 
+      <input
         ref={inputRef}
-        type="file" 
+        type="file"
         accept="image/*"
         style={{ display: 'none' }}
         onChange={handleFile}

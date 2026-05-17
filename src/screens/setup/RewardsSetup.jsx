@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useHousehold } from '../../contexts/HouseholdContext'
+import { uploadPhoto, resizeImage } from '../../utils/storage'
 import Page from '../../components/Page'
 
 const EMOJI_PICKER = ['🍦','🎁','🌳','🎨','🎪','🍰','🎮','🎭','🚂','⚽','🏊','🎬','🦒','📚','🍕','🎟️']
@@ -18,11 +19,11 @@ export default function RewardsSetup() {
     next[i] = { ...next[i], [field]: val }
     setRewards(next)
   }
-  
+
   const remove = (i) => setRewards(rewards.filter((_, idx) => idx !== i))
-  
-  const add = () => setRewards([...rewards, { 
-    id: String(Date.now()), name: '', emoji: '🎁', threshold: 5, unlocked: false 
+
+  const add = () => setRewards([...rewards, {
+    id: String(Date.now()), name: '', emoji: '🎁', threshold: 5, unlocked: false
   }])
 
   const submit = async () => {
@@ -33,8 +34,8 @@ export default function RewardsSetup() {
     setBusy(true)
     try {
       await updateDoc(doc(db, 'households', householdId), {
-        rewardsPath: rewards.map(r => ({ 
-          ...r, 
+        rewardsPath: rewards.map(r => ({
+          ...r,
           threshold: Number(r.threshold) || 1,
           unlocked: false,
         })),
@@ -55,21 +56,21 @@ export default function RewardsSetup() {
         <p className="page-subtitle">
           These light up as your little one earns coins. You can change these anytime — and tweak the thresholds if they're earning too fast or slow.
         </p>
-        
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 32 }}>
           {rewards.map((r, i) => (
-            <RewardEditor key={r.id} reward={r} index={i} 
-              onChange={(field, val) => update(i, field, val)} 
+            <RewardEditor key={r.id} reward={r} index={i} householdId={householdId}
+              onChange={(field, val) => update(i, field, val)}
               onRemove={() => remove(i)}
             />
           ))}
-          
+
           <button onClick={add} className="btn-secondary" style={{ marginTop: 8 }}>
             + Add another reward
           </button>
         </div>
-        
-        <button onClick={submit} disabled={busy || rewards.length === 0} 
+
+        <button onClick={submit} disabled={busy || rewards.length === 0}
           className="btn-primary" style={{ marginTop: 24, width: '100%' }}>
           {busy ? 'Saving...' : "All done — let's begin"}
         </button>
@@ -78,42 +79,81 @@ export default function RewardsSetup() {
   )
 }
 
-function RewardEditor({ reward, index, onChange, onRemove }) {
+function RewardEditor({ reward, index, onChange, onRemove, householdId }) {
   const [showEmoji, setShowEmoji] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef(null)
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const resized = await resizeImage(file)
+      const url = await uploadPhoto(resized, householdId, 'rewards')
+      onChange('photoUrl', url)
+      setShowEmoji(false)
+    } catch (err) {
+      console.error(err)
+      alert('Could not upload photo. Try again?')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
   return (
     <div className="card" style={{ position: 'relative' }}>
       <div style={{ position: 'absolute', top: 8, left: 16, fontSize: 11, color: 'var(--text-muted)', fontWeight: 700 }}>
         REWARD {index + 1}
       </div>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 12 }}>
-        <button onClick={() => setShowEmoji(!showEmoji)} 
-          style={{ 
-            fontSize: 36, padding: 8, background: 'var(--surface)', 
-            borderRadius: 12, border: '1px solid var(--border)',
-            width: 70, height: 70, display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-          {reward.emoji}
-        </button>
+
+        {/* Icon area: photo or emoji */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          {reward.photoUrl ? (
+            <div style={{
+              width: 70, height: 70, borderRadius: 12,
+              background: `url(${reward.photoUrl}) center/cover`,
+              border: '1px solid var(--border)',
+            }}/>
+          ) : (
+            <button onClick={() => setShowEmoji(!showEmoji)}
+              style={{
+                fontSize: 36, padding: 8, background: 'var(--surface)',
+                borderRadius: 12, border: '1px solid var(--border)',
+                width: 70, height: 70, display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+              {reward.emoji}
+            </button>
+          )}
+          <input type="file" accept="image/*" ref={fileRef} style={{ display: 'none' }} onChange={handlePhoto}/>
+          <button onClick={() => reward.photoUrl ? onChange('photoUrl', null) : fileRef.current?.click()}
+            style={{ fontSize: 11, color: 'var(--text-soft)', fontWeight: 600 }}>
+            {uploading ? '...' : reward.photoUrl ? '✕ photo' : '📷 photo'}
+          </button>
+        </div>
+
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <input className="field-input" value={reward.name} 
-            onChange={e => onChange('name', e.target.value)} 
+          <input className="field-input" value={reward.name}
+            onChange={e => onChange('name', e.target.value)}
             placeholder="Reward name"
             style={{ padding: '10px 14px' }}/>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: 'var(--text-soft)' }}>Unlock at</span>
-            <input type="number" min="1" className="field-input" value={reward.threshold} 
+            <input type="number" min="1" className="field-input" value={reward.threshold}
               onChange={e => onChange('threshold', e.target.value)}
               style={{ width: 80, padding: '8px 12px' }}/>
             <span style={{ fontSize: 13, color: 'var(--text-soft)' }}>coins</span>
-            <button onClick={onRemove} style={{ 
-              marginLeft: 'auto', color: 'var(--rose)', fontSize: 13, fontWeight: 600 
+            <button onClick={onRemove} style={{
+              marginLeft: 'auto', color: 'var(--rose)', fontSize: 13, fontWeight: 600
             }}>Remove</button>
           </div>
         </div>
       </div>
-      
+
       {showEmoji && (
-        <div style={{ 
+        <div style={{
           marginTop: 12, padding: 12, background: 'var(--midnight-soft)', borderRadius: 12,
           display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 4
         }}>

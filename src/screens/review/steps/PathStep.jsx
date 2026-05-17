@@ -71,11 +71,13 @@ export default function PathStep({ next, household }) {
                     </div>
                   </div>
                   
-                  <div style={{ 
+                  <div style={{
                     width: 64, height: 64, borderRadius: '50%',
-                    background: unlocked 
-                      ? 'linear-gradient(135deg, var(--star-gold), var(--star-warm))' 
-                      : 'var(--surface)',
+                    background: r.photoUrl
+                      ? `url(${r.photoUrl}) center/cover`
+                      : unlocked
+                        ? 'linear-gradient(135deg, var(--star-gold), var(--star-warm))'
+                        : 'var(--surface)',
                     border: unlocked ? '3px solid var(--star-gold)' : '3px solid var(--border)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 32,
@@ -84,7 +86,8 @@ export default function PathStep({ next, household }) {
                     transitionDelay: `${i * 0.2}s`,
                     position: 'relative', zIndex: 1,
                     filter: !unlocked ? 'grayscale(0.6) opacity(0.5)' : 'none',
-                  }}>{r.emoji}</div>
+                    overflow: 'hidden',
+                  }}>{!r.photoUrl && r.emoji}</div>
                   
                   <div style={{ flex: 1 }}/>
                 </div>

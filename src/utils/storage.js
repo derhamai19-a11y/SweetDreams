@@ -30,8 +30,8 @@ export function resizeImage(file, maxDim = 1200) {
         canvas.height = height
         canvas.getContext('2d').drawImage(img, 0, 0, width, height)
         canvas.toBlob((blob) => {
-          const resized = new File([blob], file.name, { type: 'image/jpeg' })
-          resolve(resized)
+          if (!blob) { resolve(file); return } // fallback to original if resize fails
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }))
         }, 'image/jpeg', 0.85)
       }
       img.src = e.target.result

@@ -137,6 +137,11 @@ img {
   100% { background-position: 200% 0; }
 }
 
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--star-gold), var(--star-warm));
   color: var(--midnight);

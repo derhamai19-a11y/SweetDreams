@@ -3,15 +3,16 @@ import { FRIEND_AVATAR } from '../../../utils/constants'
 import Page from '../../../components/Page'
 
 export default function GratefulStep({ next, update, data, tonightPrep }) {
-  const { adults } = useHousehold()
-  
+  const { adults, household } = useHousehold()
+  const customPeople = household?.gratefulPeople || []
+
   const options = tonightPrep?.gratefulOptions?.length > 0
     ? tonightPrep.gratefulOptions
     : adults.map(a => a.id) // fallback to all adults if no prep
 
   const people = options.map(id => {
     if (id === 'friend') return FRIEND_AVATAR
-    return adults.find(a => a.id === id)
+    return adults.find(a => a.id === id) || customPeople.find(p => p.id === id)
   }).filter(Boolean)
 
   const pick = (id) => {
