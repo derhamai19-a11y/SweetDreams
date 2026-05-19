@@ -7,7 +7,6 @@ import { useHousehold } from '../../contexts/HouseholdContext'
 import { uploadPhoto, resizeImage } from '../../utils/storage'
 import Page from '../../components/Page'
 
-const EMOJI_PICKER = ['🍦','🎁','🌳','🎨','🎪','🍰','🎮','🎭','🚂','⚽','🏊','🎬','🦒','📚','🍕','🎟️','🦖','🚀','🐶','🍪']
 
 export default function RewardsManager() {
   const { adultProfile } = useAuth()
@@ -110,7 +109,6 @@ export default function RewardsManager() {
 }
 
 function RewardCard({ reward, index, total, currentCoins, onChange, onRemove, onMoveUp, onMoveDown, householdId }) {
-  const [showEmoji, setShowEmoji] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef(null)
   const reached = currentCoins >= reward.threshold
@@ -123,7 +121,6 @@ function RewardCard({ reward, index, total, currentCoins, onChange, onRemove, on
       const resized = await resizeImage(file)
       const url = await uploadPhoto(resized, householdId, 'rewards')
       onChange('photoUrl', url)
-      setShowEmoji(false)
     } catch (err) {
       console.error(err)
       alert('Could not upload photo. Try again?')
@@ -142,17 +139,27 @@ function RewardCard({ reward, index, total, currentCoins, onChange, onRemove, on
         {/* Icon area: photo or emoji */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
           {reward.photoUrl ? (
-            <div style={{
-              width: 60, height: 60, borderRadius: 12,
-              background: `url(${reward.photoUrl}) center/cover`,
-              border: '1px solid var(--border)',
-            }}/>
+            <img src={reward.photoUrl} alt={reward.name}
+              style={{
+                width: 60, height: 60, borderRadius: 12, objectFit: 'cover',
+                border: '1px solid var(--border)',
+              }}/>
           ) : (
-            <button onClick={() => setShowEmoji(!showEmoji)} style={{
-              fontSize: 32, width: 60, height: 60,
-              background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>{reward.emoji}</button>
+            <input
+              type="text"
+              value={reward.emoji || ''}
+              onChange={e => {
+                const chars = [...e.target.value]
+                const last = chars[chars.length - 1]
+                if (last) onChange('emoji', last)
+              }}
+              placeholder="🎁"
+              style={{
+                fontSize: 30, width: 60, height: 60, textAlign: 'center',
+                background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)',
+                color: 'var(--text)',
+              }}
+            />
           )}
           <input type="file" accept="image/*" ref={fileRef} style={{ display: 'none' }} onChange={handlePhoto}/>
           <button onClick={() => reward.photoUrl ? onChange('photoUrl', null) : fileRef.current?.click()}
@@ -189,17 +196,6 @@ function RewardCard({ reward, index, total, currentCoins, onChange, onRemove, on
         marginTop: 8, fontSize: 12, color: 'var(--rose)', fontWeight: 600
       }}>Remove</button>
 
-      {showEmoji && (
-        <div style={{
-          marginTop: 12, padding: 10, background: 'var(--midnight-soft)', borderRadius: 10,
-          display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4
-        }}>
-          {EMOJI_PICKER.map(e => (
-            <button key={e} onClick={() => { onChange('emoji', e); setShowEmoji(false) }}
-              style={{ fontSize: 22, padding: 4 }}>{e}</button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

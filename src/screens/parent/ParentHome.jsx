@@ -71,11 +71,11 @@ export default function ParentHome() {
           borderColor: 'rgba(177,156,217,0.3)',
         }}>
           {child?.photoUrl ? (
-            <div style={{
-              width: 70, height: 70, borderRadius: '50%',
-              background: `url(${child.photoUrl}) center/cover`,
-              backgroundSize: 'cover', flexShrink: 0,
-            }}/>
+            <img src={child.photoUrl} alt={child.name}
+              style={{
+                width: 70, height: 70, borderRadius: '50%',
+                objectFit: 'cover', flexShrink: 0,
+              }}/>
           ) : (
             <div style={{
               fontSize: 48, width: 70, height: 70,
@@ -118,10 +118,11 @@ export default function ParentHome() {
                     borderColor: `${cat?.color}44`,
                   }}>
                     {a.photoUrl ? (
-                      <div style={{
-                        width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-                        background: `url(${a.photoUrl}) center/cover`,
-                      }}/>
+                      <img src={a.photoUrl} alt=""
+                        style={{
+                          width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                          objectFit: 'cover',
+                        }}/>
                     ) : (
                       <div style={{ fontSize: 28, flexShrink: 0 }}>{a.emoji || cat?.emoji}</div>
                     )}

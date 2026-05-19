@@ -8,11 +8,20 @@ import { AVATARS } from '../../utils/constants'
 import Page from '../../components/Page'
 import PhotoUpload from '../../components/PhotoUpload'
 
-const FAMILY_EMOJIS = [
-  '👨','👩','🧔','👴','👵','🧑','👦','👧','🧒',
-  '🙋‍♂️','🙋‍♀️','🤰','🧙‍♂️','🧙‍♀️','🦸‍♂️','🦸‍♀️',
-  '🎅','🤶','🧑‍🍳','🧑‍🎨','🧑‍💻','🧑‍🏫','👑','🤗',
+const SKIN_TONES = [
+  { mod: '',       color: '#FFCC22' },
+  { mod: '\u{1F3FB}', color: '#FDDBB4' },
+  { mod: '\u{1F3FC}', color: '#E0BB95' },
+  { mod: '\u{1F3FD}', color: '#BF8B5E' },
+  { mod: '\u{1F3FE}', color: '#9B6340' },
+  { mod: '\u{1F3FF}', color: '#5C3317' },
 ]
+
+function applySkinTone(emoji, mod) {
+  if (!emoji) return emoji
+  const stripped = emoji.replace(/[\u{1F3FB}-\u{1F3FF}]/gu, '')
+  return stripped + mod
+}
 
 export default function FamilySettings() {
   const { adultProfile, signOut, refreshProfile } = useAuth()
@@ -32,7 +41,6 @@ export default function FamilySettings() {
   const [editName, setEditName] = useState('')
   const [editPhoto, setEditPhoto] = useState(null)
   const [editEmoji, setEditEmoji] = useState(null)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
 
   const isAdmin = adultProfile?.role === 'admin'
@@ -66,7 +74,6 @@ export default function FamilySettings() {
     setEditName(adultProfile?.name || '')
     setEditPhoto(adultProfile?.photoUrl || null)
     setEditEmoji(adultProfile?.emoji || null)
-    setShowEmojiPicker(false)
     setEditingProfile(true)
   }
 
@@ -129,10 +136,11 @@ export default function FamilySettings() {
           <div>
             <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               {child?.photoUrl ? (
-                <div style={{
-                  width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
-                  background: `url(${child.photoUrl}) center/cover`,
-                }}/>
+                <img src={child.photoUrl} alt={child.name}
+                  style={{
+                    width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
+                    objectFit: 'cover',
+                  }}/>
               ) : (
                 <div style={{ fontSize: 40 }}>{AVATARS.find(a => a.id === child?.avatar)?.emoji}</div>
               )}
@@ -221,10 +229,11 @@ export default function FamilySettings() {
                 <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   {/* Photo > emoji > default */}
                   {a.photoUrl ? (
-                    <div style={{
-                      width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
-                      background: `url(${a.photoUrl}) center/cover`,
-                    }}/>
+                    <img src={a.photoUrl} alt={a.name}
+                      style={{
+                        width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
+                        objectFit: 'cover',
+                      }}/>
                   ) : (
                     <div style={{
                       width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
@@ -304,29 +313,42 @@ export default function FamilySettings() {
 
                     <div style={{ marginBottom: 16 }}>
                       <label className="field-label">Or choose an emoji</label>
-                      <button
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        style={{
-                          marginTop: 8, fontSize: 28, width: 56, height: 56,
-                          background: 'var(--surface)', borderRadius: 12,
-                          border: editEmoji ? '2px solid var(--star-gold)' : '1px solid var(--border)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                        {editEmoji || '😊'}
-                      </button>
-                      {showEmojiPicker && (
-                        <div style={{
-                          marginTop: 8, padding: 10,
-                          background: 'var(--midnight-soft)', borderRadius: 12,
-                          display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4,
-                        }}>
-                          {FAMILY_EMOJIS.map(e => (
-                            <button key={e} onClick={() => {
-                              setEditEmoji(e); setEditPhoto(null); setShowEmojiPicker(false)
-                            }} style={{ fontSize: 24, padding: 6, borderRadius: 8 }}>{e}</button>
-                          ))}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <input
+                            type="text"
+                            value={editEmoji || ''}
+                            onChange={e => {
+                              const chars = [...e.target.value]
+                              const last = chars[chars.length - 1] || null
+                              setEditEmoji(last)
+                              if (last) setEditPhoto(null)
+                            }}
+                            placeholder="😊"
+                            style={{
+                              width: 60, height: 60, fontSize: 32, textAlign: 'center',
+                              background: 'var(--surface)', borderRadius: 12, color: 'var(--text)',
+                              border: editEmoji ? '2px solid var(--star-gold)' : '1px solid var(--border)',
+                            }}
+                          />
+                          {editEmoji && (
+                            <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                              {SKIN_TONES.map(({ mod, color }) => (
+                                <button key={color} onClick={() => setEditEmoji(applySkinTone(editEmoji, mod))}
+                                  title={mod || 'Default'}
+                                  style={{
+                                    width: 16, height: 16, borderRadius: '50%',
+                                    background: color, border: '1px solid rgba(255,255,255,0.2)',
+                                    flexShrink: 0,
+                                  }}/>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                          Tap to open your emoji keyboard
+                        </span>
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: 8 }}>

@@ -7,68 +7,19 @@ import { uploadPhoto, resizeImage } from '../../utils/storage'
 import Page from '../../components/Page'
 import { FRIEND_AVATAR } from '../../utils/constants'
 
-// Base person emojis — click to optionally apply a skin tone
-const BASE_PERSON_EMOJIS = ['👨','👩','🧑','👦','👧','🧒','👴','👵','🧔']
-const OTHER_EMOJIS = ['🙋‍♂️','🙋‍♀️','🧙‍♂️','🧙‍♀️','🦸','🤗','🎅','🤶','🧑‍🍳','🧑‍🎨','🧑‍💻','🧑‍🏫','👑','🐶']
 const SKIN_TONES = [
-  { label: 'Default', mod: '' },
-  { label: 'Light', mod: '🏻' },
-  { label: 'Medium-light', mod: '🏼' },
-  { label: 'Medium', mod: '🏽' },
-  { label: 'Medium-dark', mod: '🏾' },
-  { label: 'Dark', mod: '🏿' },
+  { mod: '',       color: '#FFCC22' },
+  { mod: '\u{1F3FB}', color: '#FDDBB4' },
+  { mod: '\u{1F3FC}', color: '#E0BB95' },
+  { mod: '\u{1F3FD}', color: '#BF8B5E' },
+  { mod: '\u{1F3FE}', color: '#9B6340' },
+  { mod: '\u{1F3FF}', color: '#5C3317' },
 ]
 
-function PersonEmojiPicker({ value, onSelect }) {
-  const [pending, setPending] = useState(null)
-
-  const pick = (emoji) => {
-    if (BASE_PERSON_EMOJIS.includes(emoji)) {
-      setPending(emoji) // show skin tone options
-    } else {
-      onSelect(emoji)
-    }
-  }
-
-  if (pending) {
-    return (
-      <div>
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>
-          Choose skin tone for {pending}:
-        </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-          {SKIN_TONES.map(({ label, mod }) => (
-            <button key={label} onClick={() => { onSelect(pending + mod); setPending(null) }}
-              style={{
-                fontSize: 28, width: 46, height: 46, borderRadius: 10,
-                background: 'var(--midnight-soft)', border: '1px solid var(--border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-              {pending + mod}
-            </button>
-          ))}
-        </div>
-        <button onClick={() => setPending(null)} style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          ← Back
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
-      {[...BASE_PERSON_EMOJIS, ...OTHER_EMOJIS].map(e => (
-        <button key={e} onClick={() => pick(e)}
-          style={{
-            fontSize: 26, padding: 6, borderRadius: 8,
-            background: value === e ? 'rgba(255,213,132,0.2)' : 'transparent',
-            border: value === e ? '1px solid var(--star-gold)' : '1px solid transparent',
-          }}>
-          {e}
-        </button>
-      ))}
-    </div>
-  )
+function applySkinTone(emoji, mod) {
+  if (!emoji || emoji === '👤') return emoji
+  const stripped = emoji.replace(/[\u{1F3FB}-\u{1F3FF}]/gu, '')
+  return stripped + mod
 }
 
 export default function TonightPrep() {
@@ -85,7 +36,6 @@ export default function TonightPrep() {
   const [newPersonName, setNewPersonName] = useState('')
   const [newPersonEmoji, setNewPersonEmoji] = useState('👤')
   const [newPersonPhoto, setNewPersonPhoto] = useState(null)
-  const [showPersonEmoji, setShowPersonEmoji] = useState(false)
   const [uploadingPersonPhoto, setUploadingPersonPhoto] = useState(false)
   const personPhotoRef = useRef(null)
 
@@ -145,7 +95,6 @@ export default function TonightPrep() {
     setNewPersonEmoji('👤')
     setNewPersonPhoto(null)
     setShowAddPerson(false)
-    setShowPersonEmoji(false)
   }
 
   const removePerson = async (person) => {
@@ -215,10 +164,11 @@ export default function TonightPrep() {
                     className={`kid-tile ${selected ? 'selected' : ''}`}
                     style={{ minHeight: 100, padding: 12, width: '100%' }}>
                     {p.photoUrl ? (
-                      <div style={{
-                        width: 50, height: 50, borderRadius: '50%',
-                        background: `url(${p.photoUrl}) center/cover`,
-                      }}/>
+                      <img src={p.photoUrl} alt={p.name || p.label}
+                        style={{
+                          width: 50, height: 50, borderRadius: '50%',
+                          objectFit: 'cover',
+                        }}/>
                     ) : (
                       <div style={{ fontSize: 36 }}>{p.emoji || '👤'}</div>
                     )}
@@ -269,9 +219,11 @@ export default function TonightPrep() {
                     disabled={uploadingPersonPhoto}
                     style={{
                       width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
-                      background: newPersonPhoto
-                        ? `url(${newPersonPhoto}) center/cover`
-                        : 'var(--midnight-soft)',
+                      background: 'var(--midnight-soft)',
+                      backgroundImage: newPersonPhoto ? `url(${newPersonPhoto})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
                       border: newPersonPhoto ? '2px solid var(--star-gold)' : '2px dashed var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 22,
@@ -285,15 +237,35 @@ export default function TonightPrep() {
 
                 {/* Emoji selector */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <button onClick={() => setShowPersonEmoji(!showPersonEmoji)}
+                  <input
+                    type="text"
+                    value={newPersonEmoji === '👤' ? '' : newPersonEmoji}
+                    onChange={e => {
+                      const chars = [...e.target.value]
+                      const last = chars[chars.length - 1] || '👤'
+                      setNewPersonEmoji(last)
+                      if (last !== '👤') setNewPersonPhoto(null)
+                    }}
+                    placeholder="👤"
                     style={{
-                      fontSize: 32, width: 56, height: 56, flexShrink: 0,
-                      background: 'var(--midnight-soft)', borderRadius: '50%',
+                      width: 56, height: 56, fontSize: 30, textAlign: 'center', flexShrink: 0,
+                      background: 'var(--midnight-soft)', borderRadius: '50%', color: 'var(--text)',
                       border: (!newPersonPhoto && newPersonEmoji !== '👤') ? '2px solid var(--star-gold)' : '2px dashed var(--border)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                    {newPersonEmoji}
-                  </button>
+                    }}
+                  />
+                  {newPersonEmoji && newPersonEmoji !== '👤' && (
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      {SKIN_TONES.map(({ mod, color }) => (
+                        <button key={color} onClick={() => setNewPersonEmoji(applySkinTone(newPersonEmoji, mod))}
+                          title={mod || 'Default'}
+                          style={{
+                            width: 14, height: 14, borderRadius: '50%',
+                            background: color, border: '1px solid rgba(255,255,255,0.2)',
+                            flexShrink: 0,
+                          }}/>
+                      ))}
+                    </div>
+                  )}
                   <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>EMOJI</span>
                 </div>
 
@@ -306,23 +278,6 @@ export default function TonightPrep() {
                 />
               </div>
 
-              {showPersonEmoji && (
-                <div style={{
-                  marginBottom: 12, padding: 10,
-                  background: 'var(--midnight-soft)', borderRadius: 12,
-                  border: '1px solid var(--border)',
-                }}>
-                  <PersonEmojiPicker
-                    value={newPersonEmoji}
-                    onSelect={(e) => {
-                      setNewPersonEmoji(e)
-                      setNewPersonPhoto(null)
-                      setShowPersonEmoji(false)
-                    }}
-                  />
-                </div>
-              )}
-
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={addPerson} disabled={!newPersonName.trim()}
                   className="btn-primary" style={{ flex: 1 }}>
@@ -332,7 +287,6 @@ export default function TonightPrep() {
                   setShowAddPerson(false)
                   setNewPersonName('')
                   setNewPersonPhoto(null)
-                  setShowPersonEmoji(false)
                 }} className="btn-secondary" style={{ flex: 1 }}>
                   Cancel
                 </button>

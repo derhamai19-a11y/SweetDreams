@@ -56,11 +56,12 @@ export default function GratefulStep({ next, update, data, tonightPrep }) {
                     ...(selected ? { transform: 'scale(1.05)' } : {}),
                   }}>
                   {p.photoUrl ? (
-                    <div style={{ 
-                      width: 72, height: 72, borderRadius: '50%',
-                      background: `url(${p.photoUrl}) center/cover`,
-                      border: '3px solid ' + (selected ? 'var(--star-gold)' : 'var(--border)'),
-                    }}/>
+                    <img src={p.photoUrl} alt={p.name || p.label}
+                      style={{
+                        width: 72, height: 72, borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '3px solid ' + (selected ? 'var(--star-gold)' : 'var(--border)'),
+                      }}/>
                   ) : (
                     <div style={{ fontSize: 56 }}>{p.emoji || '👤'}</div>
                   )}

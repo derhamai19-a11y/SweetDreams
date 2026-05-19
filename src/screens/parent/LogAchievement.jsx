@@ -8,14 +8,6 @@ import { CATEGORIES } from '../../utils/constants'
 import Page from '../../components/Page'
 import PhotoUpload from '../../components/PhotoUpload'
 
-const STICKER_EMOJIS = [
-  '🌟','⭐','✨','🎉','🎊','🏅','🏆','🥇',
-  '💪','🦁','🌈','🦋','🌸','🍀','🌺','🌻',
-  '🎨','📚','🎵','🎮','⚽','🏊','🚀','🎭',
-  '🍕','🍦','🍰','🍎','🥦','🎂','🧁','🍪',
-  '🐶','🐱','🐻','🦊','🐰','🦉','🐼','🦄',
-]
-
 export default function LogAchievement() {
   const { adultProfile } = useAuth()
   const { householdId, child } = useHousehold()
@@ -25,7 +17,6 @@ export default function LogAchievement() {
   const [note, setNote] = useState('')
   const [photoUrl, setPhotoUrl] = useState(null)
   const [emoji, setEmoji] = useState(null)
-  const [showEmoji, setShowEmoji] = useState(false)
   const [coinsValue, setCoinsValue] = useState(1)
   const [busy, setBusy] = useState(false)
 
@@ -76,17 +67,25 @@ export default function LogAchievement() {
             <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>PHOTO</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button onClick={() => setShowEmoji(!showEmoji)} style={{
-              width: 90, height: 90, borderRadius: '50%',
-              background: emoji ? 'var(--surface)' : 'var(--surface)',
-              border: emoji ? '2px solid var(--star-gold)' : '2px dashed var(--border)',
-              fontSize: emoji ? 48 : 28,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {emoji || '🌟'}
-            </button>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textAlign: 'center' }}>STICKER</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <input
+              type="text"
+              value={emoji || ''}
+              onChange={e => {
+                const chars = [...e.target.value]
+                const last = chars[chars.length - 1] || null
+                setEmoji(last)
+                if (last) setPhotoUrl(null)
+              }}
+              placeholder="🌟"
+              style={{
+                width: 90, height: 90, borderRadius: '50%', textAlign: 'center',
+                background: 'var(--surface)', color: 'var(--text)',
+                border: emoji ? '2px solid var(--star-gold)' : '2px dashed var(--border)',
+                fontSize: 44,
+              }}
+            />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>STICKER</span>
           </div>
 
           <div style={{ flex: 1 }}>
@@ -98,29 +97,6 @@ export default function LogAchievement() {
               style={{ resize: 'none', marginTop: 6 }}/>
           </div>
         </div>
-
-        {showEmoji && (
-          <div style={{
-            marginTop: 10, padding: 12, background: 'var(--midnight-soft)', borderRadius: 14,
-            border: '1px solid var(--border)',
-            display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 4,
-          }}>
-            <button onClick={() => { setEmoji(null); setShowEmoji(false) }}
-              style={{ fontSize: 13, padding: 6, borderRadius: 8, color: 'var(--text-muted)', gridColumn: 'span 8', textAlign: 'left' }}>
-              ✕ No sticker
-            </button>
-            {STICKER_EMOJIS.map(e => (
-              <button key={e} onClick={() => { setEmoji(e); setPhotoUrl(null); setShowEmoji(false) }}
-                style={{
-                  fontSize: 24, padding: 6, borderRadius: 8,
-                  background: emoji === e ? 'rgba(255,213,132,0.2)' : 'transparent',
-                  border: emoji === e ? '1px solid var(--star-gold)' : '1px solid transparent',
-                }}>
-                {e}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Category */}
         <div style={{ marginTop: 28 }}>

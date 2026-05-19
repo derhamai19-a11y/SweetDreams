@@ -69,8 +69,11 @@ export default function PhotoUpload({
         style={{
           width: size, height: size,
           borderRadius: '50%',
-          background: localPreview ? `url(${localPreview}) center/cover` : 'var(--surface)',
+          background: localPreview ? 'none' : 'var(--surface)',
+          backgroundImage: localPreview ? `url(${localPreview})` : 'none',
           backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
           border: '2px dashed var(--border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--text-soft)', fontSize: 12, fontWeight: 600,
