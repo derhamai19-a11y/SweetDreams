@@ -101,6 +101,30 @@ export default function ParentHome() {
           Log an achievement
         </button>
 
+        {/* Reward chooser banner — shown when a draft is waiting */}
+        {household?.rewardDraft?.readyForChoice && (
+          <Link to="/rewards/choose" style={{ textDecoration: 'none' }}>
+            <div className="card" style={{
+              marginBottom: 14,
+              borderColor: 'var(--star-gold)',
+              background: 'rgba(255,213,132,0.1)',
+              boxShadow: '0 0 20px rgba(255,213,132,0.2)',
+              display: 'flex', alignItems: 'center', gap: 14,
+              animation: 'fadeIn 0.4s ease',
+            }}>
+              <div style={{ fontSize: 32, animation: 'float 3s ease-in-out infinite' }}>🌟</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--star-gold)' }}>
+                  {child?.name} has rewards to choose!
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 2 }}>
+                  Tap to let them pick their path →
+                </div>
+              </div>
+            </div>
+          </Link>
+        )}
+
         {/* Achievement log */}
         {achievements.length > 0 && (
           <div style={{ marginBottom: 16 }}>
@@ -169,8 +193,10 @@ export default function ParentHome() {
             subtitle="Past achievements"/>
           <ActionTile to="/memories" emoji="📷" title="Memory book"
             subtitle="Past days"/>
+          <ActionTile to="/rewards/build" emoji="🏗️" title="Build rewards"
+            subtitle="New path options"/>
           <ActionTile to="/rewards" emoji="🎁" title="Edit rewards"
-            subtitle="Manage path"/>
+            subtitle="Free-form edit"/>
           <ActionTile to="/family" emoji="👨‍👩‍👧" title="Family"
             subtitle="People & settings"/>
         </div>

@@ -94,7 +94,7 @@ export default function ReviewFlow() {
       const lastReward = path[path.length - 1]
       if (lastReward && coins >= lastReward.threshold) {
         await updateDoc(doc(db, 'households', householdId), {
-          currentCoins: 0,
+          currentCoins: coins - lastReward.threshold,
           pathCycle: increment(1),
         })
       }

@@ -15,8 +15,10 @@ import LogAchievement from './screens/parent/LogAchievement'
 import TonightPrep from './screens/parent/TonightPrep'
 import FamilySettings from './screens/parent/FamilySettings'
 import RewardsManager from './screens/parent/RewardsManager'
+import RewardBuilder from './screens/parent/RewardBuilder'
 
 import ReviewFlow from './screens/review/ReviewFlow'
+import RewardChooser from './screens/review/RewardChooser'
 
 import MemoryBook from './screens/archive/MemoryBook'
 import TrophyShelf from './screens/archive/TrophyShelf'
@@ -84,6 +86,12 @@ function AppRoutes() {
       } />
       <Route path="/rewards" element={
         <Protected><NeedsChild><RewardsManager /></NeedsChild></Protected>
+      } />
+      <Route path="/rewards/build" element={
+        <Protected><NeedsChild><RewardBuilder /></NeedsChild></Protected>
+      } />
+      <Route path="/rewards/choose" element={
+        <Protected><NeedsChild><RewardChooser /></NeedsChild></Protected>
       } />
 
       <Route path="/review" element={
