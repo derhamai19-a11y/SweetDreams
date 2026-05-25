@@ -22,6 +22,7 @@ import RewardChooser from './screens/review/RewardChooser'
 
 import MemoryBook from './screens/archive/MemoryBook'
 import TrophyShelf from './screens/archive/TrophyShelf'
+import RewardHistory from './screens/archive/RewardHistory'
 
 function Protected({ children }) {
   const { user, adultProfile, loading } = useAuth()
@@ -103,6 +104,9 @@ function AppRoutes() {
       } />
       <Route path="/trophies" element={
         <Protected><NeedsChild><TrophyShelf /></NeedsChild></Protected>
+      } />
+      <Route path="/reward-history" element={
+        <Protected><NeedsChild><RewardHistory /></NeedsChild></Protected>
       } />
 
       <Route path="*" element={<Navigate to="/" replace />} />

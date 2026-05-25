@@ -58,5 +58,12 @@ service cloud.firestore {
       allow update: if isSignedIn() && isHouseholdMember(resource.data.householdId);
       allow delete: if isSignedIn() && isHouseholdMember(resource.data.householdId);
     }
+
+    match /rewardEarned/{rewardId} {
+      allow read: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow create: if isSignedIn() && isHouseholdMember(request.resource.data.householdId);
+      allow update: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow delete: if isAdmin(resource.data.householdId);
+    }
   }
 }

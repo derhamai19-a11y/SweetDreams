@@ -195,6 +195,8 @@ export default function ParentHome() {
             subtitle="Past days"/>
           <ActionTile to="/rewards/build" emoji="🏗️" title="Build rewards"
             subtitle="New path options"/>
+          <ActionTile to="/reward-history" emoji="🏅" title="Reward history"
+            subtitle="Track redemptions"/>
           <ActionTile to="/rewards" emoji="🎁" title="Edit rewards"
             subtitle="Free-form edit"/>
           <ActionTile to="/family" emoji="👨‍👩‍👧" title="Family"

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { doc, updateDoc, setDoc, serverTimestamp, increment, deleteDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, updateDoc, setDoc, serverTimestamp, increment, deleteDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useHousehold } from '../../contexts/HouseholdContext'
 
@@ -93,10 +93,27 @@ export default function ReviewFlow() {
       const coins = household?.currentCoins || 0
       const lastReward = path[path.length - 1]
       if (lastReward && coins >= lastReward.threshold) {
-        await updateDoc(doc(db, 'households', householdId), {
+        const cycleNumber = (household?.pathCycle || 0) + 1
+        const earnBatch = writeBatch(db)
+        earnBatch.update(doc(db, 'households', householdId), {
           currentCoins: coins - lastReward.threshold,
           pathCycle: increment(1),
         })
+        path.forEach(r => {
+          const earnRef = doc(collection(db, 'rewardEarned'))
+          earnBatch.set(earnRef, {
+            householdId,
+            childId: child.id,
+            name: r.name,
+            photoUrl: r.photoUrl || null,
+            threshold: r.threshold,
+            pathCycle: cycleNumber,
+            earnedAt: serverTimestamp(),
+            redeemed: false,
+            redeemedAt: null,
+          })
+        })
+        await earnBatch.commit()
       }
 
       if (tonightPrep?.id) {
