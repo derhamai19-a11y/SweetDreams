@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useHousehold } from '../../contexts/HouseholdContext'
+import { uploadPhoto, resizeImage } from '../../utils/storage'
 import Page from '../../components/Page'
 
 export default function RewardHistory() {
@@ -10,6 +11,7 @@ export default function RewardHistory() {
   const nav = useNavigate()
   const [earned, setEarned] = useState(null) // null = loading
   const [redeeming, setRedeeming] = useState(null)
+  const [editing, setEditing] = useState(null) // reward object being edited
   const autoPopRef = useRef(false)
 
   // Subscribe to rewardEarned for this household
@@ -54,7 +56,7 @@ export default function RewardHistory() {
         await Promise.all(promises)
       } catch (e) {
         console.error('Auto-populate failed', e)
-        autoPopRef.current = false // allow retry on next render
+        autoPopRef.current = false
       }
     }
     populate()
@@ -73,6 +75,10 @@ export default function RewardHistory() {
     } finally {
       setRedeeming(null)
     }
+  }
+
+  const saveEdit = async (id, name, photoUrl) => {
+    await updateDoc(doc(db, 'rewardEarned', id), { name, photoUrl: photoUrl || null })
   }
 
   // Group by pathCycle, sort cycles descending, rewards within cycle ascending by threshold
@@ -144,6 +150,7 @@ export default function RewardHistory() {
                     key={r.id}
                     reward={r}
                     onRedeem={() => redeem(r.id)}
+                    onEdit={() => setEditing(r)}
                     redeeming={redeeming === r.id}
                   />
                 ))}
@@ -152,11 +159,25 @@ export default function RewardHistory() {
           )
         })}
       </div>
+
+      {editing && (
+        <EditSheet
+          reward={editing}
+          householdId={householdId}
+          onSave={async (name, photoUrl) => {
+            await saveEdit(editing.id, name, photoUrl)
+            setEditing(null)
+          }}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </Page>
   )
 }
 
-function RewardCard({ reward, onRedeem, redeeming }) {
+// ─── Reward Card ──────────────────────────────────────────────────────────────
+
+function RewardCard({ reward, onRedeem, onEdit, redeeming }) {
   return (
     <div className="card" style={{
       display: 'flex', alignItems: 'center', gap: 0, padding: 0,
@@ -196,8 +217,12 @@ function RewardCard({ reward, onRedeem, redeeming }) {
         )}
       </div>
 
-      {/* Action */}
-      <div style={{ paddingRight: 16, flexShrink: 0 }}>
+      {/* Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 14, flexShrink: 0 }}>
+        <button onClick={onEdit} style={{
+          fontSize: 16, padding: '6px', color: 'var(--text-muted)',
+          borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)',
+        }}>✏️</button>
         {reward.redeemed ? (
           <div style={{ fontSize: 26 }}>✅</div>
         ) : (
@@ -210,6 +235,111 @@ function RewardCard({ reward, onRedeem, redeeming }) {
             {redeeming ? '…' : 'Redeem ✓'}
           </button>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Edit Sheet ───────────────────────────────────────────────────────────────
+
+function EditSheet({ reward, householdId, onSave, onClose }) {
+  const [name, setName] = useState(reward.name || '')
+  const [photoUrl, setPhotoUrl] = useState(reward.photoUrl || null)
+  const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const fileRef = useRef(null)
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const resized = await resizeImage(file)
+      const url = await uploadPhoto(resized, householdId, 'rewards')
+      setPhotoUrl(url)
+    } catch (err) {
+      console.error(err)
+      alert('Could not upload photo. Try again?')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleSave = async () => {
+    if (!name.trim()) return
+    setSaving(true)
+    try {
+      await onSave(name.trim(), photoUrl)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(7,12,26,0.88)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      animation: 'fadeIn 0.2s ease',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: 'var(--midnight-soft)', border: '1px solid var(--border)',
+        borderRadius: '20px 20px 0 0', padding: '24px 20px 36px',
+        width: '100%', maxWidth: 480, animation: 'slideUp 0.3s ease',
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 18, letterSpacing: '0.08em' }}>
+          EDIT REWARD · {reward.threshold} ⭐
+        </div>
+
+        {/* Photo */}
+        <input type="file" accept="image/*" ref={fileRef} style={{ display: 'none' }} onChange={handlePhoto}/>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+          <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{
+            width: 80, height: 80, borderRadius: 12, overflow: 'hidden',
+            border: '2px dashed var(--border)', background: 'var(--surface)',
+            flexShrink: 0, cursor: 'pointer', padding: 0,
+          }}>
+            {photoUrl ? (
+              <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 4, color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: 24 }}>{uploading ? '⏳' : '📷'}</span>
+                <span style={{ fontSize: 10, fontWeight: 600 }}>{uploading ? 'Uploading…' : 'Add photo'}</span>
+              </div>
+            )}
+          </button>
+          <div style={{ flex: 1 }}>
+            {photoUrl && (
+              <button onClick={() => setPhotoUrl(null)} style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>
+                × Remove photo
+              </button>
+            )}
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              Tap the box to change the photo
+            </p>
+          </div>
+        </div>
+
+        {/* Name */}
+        <label className="field-label">Reward name</label>
+        <input
+          className="field-input"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="e.g. Trip to the cinema"
+          style={{ marginTop: 6, marginBottom: 20 }}
+        />
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={handleSave} disabled={saving || !name.trim() || uploading}
+            className="btn-primary" style={{ flex: 1, opacity: (saving || !name.trim()) ? 0.5 : 1 }}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          <button onClick={onClose} className="btn-secondary" style={{ flex: 1 }}>
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   )
