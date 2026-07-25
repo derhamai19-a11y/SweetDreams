@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useAuth } from '../../contexts/AuthContext'
@@ -82,7 +82,8 @@ export default function RewardsManager() {
 
         <h1 className="page-title">Rewards path</h1>
         <p className="page-subtitle">
-          {household?.currentCoins || 0} star{household?.currentCoins === 1 ? '' : 's'} earned so far. Adjust thresholds if needed.
+          {household?.currentCoins || 0} star{household?.currentCoins === 1 ? '' : 's'} earned so far. Adjust thresholds if needed —
+          these also set the milestones in <Link to="/rewards/build" style={{ color: 'var(--text-soft)', textDecoration: 'underline' }}>Build rewards</Link>.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28 }}>

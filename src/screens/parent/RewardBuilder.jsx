@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useAuth } from '../../contexts/AuthContext'
@@ -7,20 +7,23 @@ import { useHousehold } from '../../contexts/HouseholdContext'
 import { uploadPhoto, resizeImage } from '../../utils/storage'
 import Page from '../../components/Page'
 
-const MILESTONE_META = [
-  { threshold: 10, label: '10 ⭐ reward', accent: '#8FD9C4' },
-  { threshold: 20, label: '20 ⭐ reward', accent: '#B19CD9' },
-  { threshold: 30, label: '30 ⭐ reward', accent: '#FFD584' },
-]
+const ACCENTS = ['#8FD9C4', '#B19CD9', '#FFD584', '#F0A8B8', '#8FB8E8', '#FFB97A']
 
 function emptySlot(seed) {
   return { id: `slot_${seed}_${Math.random().toString(36).slice(2, 7)}`, name: '', photoUrl: null }
 }
 
-function buildDefaultMilestones() {
-  return MILESTONE_META.map(m => ({
-    threshold: m.threshold,
-    options: [emptySlot(m.threshold + 'a'), emptySlot(m.threshold + 'b')],
+function filledSlot(seed, reward) {
+  return { id: `slot_${seed}_${Math.random().toString(36).slice(2, 7)}`, name: reward?.name || '', photoUrl: reward?.photoUrl || null }
+}
+
+// Milestones mirror whatever thresholds are set in the rewards path (Edit rewards),
+// so the two screens stay in sync instead of drifting apart.
+function buildMilestonesFromPath(rewardsPath) {
+  return rewardsPath.map((r, i) => ({
+    threshold: r.threshold,
+    accent: ACCENTS[i % ACCENTS.length],
+    options: [filledSlot(r.threshold + 'a', r), emptySlot(r.threshold + 'b')],
   }))
 }
 
@@ -29,10 +32,13 @@ export default function RewardBuilder() {
   const { householdId, household, child } = useHousehold()
   const nav = useNavigate()
 
+  const hasSavedDraft = Array.isArray(household?.rewardDraft?.milestones) && household.rewardDraft.milestones.length > 0
+    && !household?.rewardDraft?.readyForChoice
+
   const [milestones, setMilestones] = useState(() => {
     const draft = household?.rewardDraft?.milestones
-    if (Array.isArray(draft) && draft.length === MILESTONE_META.length) return draft
-    return buildDefaultMilestones()
+    if (Array.isArray(draft) && draft.length > 0) return draft
+    return buildMilestonesFromPath(household?.rewardsPath || [])
   })
 
   const [busy, setBusy] = useState(false)
@@ -50,11 +56,26 @@ export default function RewardBuilder() {
     ))
   }
 
-  const sendToChild = async () => {
+  const saveDraft = async () => {
+    setBusy(true)
+    try {
+      await updateDoc(doc(db, 'households', householdId), {
+        rewardDraft: { readyForChoice: false, milestones },
+      })
+      nav('/')
+    } catch (e) {
+      console.error(e)
+      alert('Could not save. Try again?')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const presentToChild = async () => {
     for (let i = 0; i < milestones.length; i++) {
       const hasOption = milestones[i].options.some(o => o.name.trim())
       if (!hasOption) {
-        alert(`Please add at least one named option for the ${MILESTONE_META[i].label} milestone`)
+        alert(`Please add at least one named option for the ${milestones[i].threshold} ⭐ milestone`)
         return
       }
     }
@@ -72,7 +93,7 @@ export default function RewardBuilder() {
         rewardDraft: { readyForChoice: true, milestones },
         rewardHistory: updatedHistory,
       })
-      nav('/rewards/choose')
+      nav('/')
     } catch (e) {
       console.error(e)
       alert('Could not save. Try again?')
@@ -101,18 +122,26 @@ export default function RewardBuilder() {
 
         <h1 className="page-title">Build rewards path</h1>
         <p className="page-subtitle">
-          Give {child?.name || 'them'} two choices for each milestone — they'll pick their favourite
+          Give {child?.name || 'them'} two choices for each milestone — they'll pick their favourite.
+          Save your progress anytime and come back to finish, then walk through it together like tonight's prep.
+        </p>
+        {hasSavedDraft && (
+          <p style={{ fontSize: 12, color: 'var(--star-gold)', marginTop: -14, marginBottom: 8 }}>
+            Resuming your saved draft
+          </p>
+        )}
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: hasSavedDraft ? 0 : -14, marginBottom: 8 }}>
+          Milestones match your <Link to="/rewards" style={{ color: 'var(--text-soft)', textDecoration: 'underline' }}>rewards path thresholds</Link>
         </p>
 
         {milestones.map((m, mi) => {
-          const meta = MILESTONE_META[mi]
           return (
             <div key={m.threshold} style={{ marginTop: 28 }}>
               {/* Milestone heading */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: meta.accent, flexShrink: 0 }}/>
-                <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, fontWeight: 500, color: meta.accent }}>
-                  {meta.label}
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: m.accent, flexShrink: 0 }}/>
+                <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, fontWeight: 500, color: m.accent }}>
+                  {m.threshold} ⭐ reward
                 </h3>
               </div>
 
@@ -121,7 +150,7 @@ export default function RewardBuilder() {
                   <OptionSlot
                     key={opt.id}
                     option={opt}
-                    accent={meta.accent}
+                    accent={m.accent}
                     householdId={householdId}
                     hasHistory={history.length > 0}
                     onChange={patch => patchOption(mi, oi, patch)}
@@ -155,11 +184,18 @@ export default function RewardBuilder() {
           </div>
         )}
 
-        <button onClick={sendToChild} disabled={busy}
-          className="btn-primary"
-          style={{ width: '100%', marginTop: 32, marginBottom: 24, fontSize: 18, padding: '18px' }}>
-          {busy ? 'Saving...' : `Let ${child?.name || 'them'} choose! 🌟`}
-        </button>
+        <div style={{ display: 'flex', gap: 10, marginTop: 32, marginBottom: 24 }}>
+          <button onClick={saveDraft} disabled={busy} className="btn-secondary" style={{ flex: 1 }}>
+            {busy ? '...' : 'Save draft'}
+          </button>
+          <button onClick={presentToChild} disabled={busy}
+            className="btn-primary" style={{ flex: 1.4, fontSize: 16 }}>
+            {busy ? 'Saving...' : `Ready for ${child?.name || 'them'} 🌟`}
+          </button>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: -14, marginBottom: 24 }}>
+          "Save draft" keeps this just for you. "Ready" lets you walk through the choice together next time you open the app.
+        </p>
       </div>
 
       {/* History picker sheet */}

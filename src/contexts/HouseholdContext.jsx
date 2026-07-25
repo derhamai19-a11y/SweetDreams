@@ -12,6 +12,7 @@ export function HouseholdProvider({ children }) {
   const [child, setChild] = useState(null)
   const [achievements, setAchievements] = useState([])
   const [tonightPrep, setTonightPrep] = useState(null)
+  const [unredeemedRewards, setUnredeemedRewards] = useState([])
   const [loading, setLoading] = useState(true)
 
   const householdId = adultProfile?.householdId
@@ -63,6 +64,22 @@ export function HouseholdProvider({ children }) {
     return unsub
   }, [householdId])
 
+  // Earned rewards waiting to be redeemed
+  useEffect(() => {
+    if (!householdId) return
+    const q = query(
+      collection(db, 'rewardEarned'),
+      where('householdId', '==', householdId),
+      where('redeemed', '==', false)
+    )
+    const unsub = onSnapshot(q, (snap) => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      items.sort((a, b) => (a.earnedAt?.seconds || 0) - (b.earnedAt?.seconds || 0))
+      setUnredeemedRewards(items)
+    })
+    return unsub
+  }, [householdId])
+
   // Tonight's prep (today's date)
   useEffect(() => {
     if (!householdId) return
@@ -81,7 +98,7 @@ export function HouseholdProvider({ children }) {
 
   return (
     <HouseholdContext.Provider value={{
-      household, adults, child, achievements, tonightPrep, loading, householdId
+      household, adults, child, achievements, tonightPrep, unredeemedRewards, loading, householdId
     }}>
       {children}
     </HouseholdContext.Provider>

@@ -15,7 +15,7 @@ export default function RewardChooser() {
   )
 
   const [stepIndex, setStepIndex] = useState(0)
-  const [selections, setSelections] = useState([null, null, null]) // one per milestone
+  const [selections, setSelections] = useState(() => milestones.map(() => null)) // one per milestone
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -86,6 +86,8 @@ export default function RewardChooser() {
       await updateDoc(doc(db, 'households', householdId), {
         rewardsPath,
         rewardDraft: deleteField(),
+        earnedThisCycle: [],
+        rewardsPathComplete: false,
       })
       setDone(true)
     } catch (e) {

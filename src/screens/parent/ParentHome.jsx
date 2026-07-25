@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore'
+import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useAuth } from '../../contexts/AuthContext'
 import { useHousehold } from '../../contexts/HouseholdContext'
@@ -10,9 +10,10 @@ import MoonLogo from '../../components/MoonLogo'
 
 export default function ParentHome() {
   const { adultProfile, signOut } = useAuth()
-  const { household, child, achievements, tonightPrep } = useHousehold()
+  const { household, child, achievements, tonightPrep, unredeemedRewards } = useHousehold()
   const nav = useNavigate()
   const [editing, setEditing] = useState(null)
+  const [redeemingId, setRedeemingId] = useState(null)
 
   const avatar = AVATAR_MAP[child?.avatar]
   const prepReady = tonightPrep && (
@@ -43,6 +44,21 @@ export default function ParentHome() {
   const deleteAchievement = async (id) => {
     if (!confirm('Remove this achievement?')) return
     await deleteDoc(doc(db, 'achievements', id))
+  }
+
+  const redeemReward = async (id) => {
+    setRedeemingId(id)
+    try {
+      await updateDoc(doc(db, 'rewardEarned', id), {
+        redeemed: true,
+        redeemedAt: serverTimestamp(),
+      })
+    } catch (e) {
+      console.error(e)
+      alert('Could not update. Try again?')
+    } finally {
+      setRedeemingId(null)
+    }
   }
 
   return (
@@ -100,6 +116,30 @@ export default function ParentHome() {
           <span style={{ fontSize: 24 }}>✨</span>
           Log an achievement
         </button>
+
+        {/* Path-complete banner — shown once the whole rewards path is earned */}
+        {household?.rewardsPathComplete && !household?.rewardDraft?.readyForChoice && (
+          <Link to="/rewards/build" style={{ textDecoration: 'none' }}>
+            <div className="card" style={{
+              marginBottom: 14,
+              borderColor: 'var(--star-gold)',
+              background: 'rgba(255,213,132,0.1)',
+              boxShadow: '0 0 20px rgba(255,213,132,0.2)',
+              display: 'flex', alignItems: 'center', gap: 14,
+              animation: 'fadeIn 0.4s ease',
+            }}>
+              <div style={{ fontSize: 32 }}>🎉</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--star-gold)' }}>
+                  {child?.name} finished the rewards path!
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 2 }}>
+                  Build their next set of rewards →
+                </div>
+              </div>
+            </div>
+          </Link>
+        )}
 
         {/* Reward chooser banner — shown when a draft is waiting */}
         {household?.rewardDraft?.readyForChoice && (
@@ -184,6 +224,49 @@ export default function ParentHome() {
             subtitle="Start with your child"/>
         </div>
 
+        {/* Earned rewards waiting to be given */}
+        {unredeemedRewards.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+              Earned, not redeemed yet
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {unredeemedRewards.map(r => (
+                <div key={r.id} className="card" style={{
+                  display: 'flex', alignItems: 'center', gap: 0, padding: 0, overflow: 'hidden',
+                  borderColor: 'rgba(255,213,132,0.22)', background: 'rgba(255,213,132,0.04)',
+                }}>
+                  {r.photoUrl ? (
+                    <img src={r.photoUrl} alt={r.name}
+                      style={{ width: 56, height: 56, objectFit: 'cover', flexShrink: 0 }}/>
+                  ) : (
+                    <div style={{
+                      width: 56, height: 56, flexShrink: 0, fontSize: 26,
+                      background: 'var(--midnight-soft)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>🎁</div>
+                  )}
+                  <div style={{ flex: 1, padding: '8px 12px', minWidth: 0 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700 }}>AT {r.threshold} ⭐</div>
+                    <div style={{
+                      fontFamily: 'var(--display)', fontSize: 15, fontWeight: 500,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{r.name}</div>
+                  </div>
+                  <button
+                    onClick={() => redeemReward(r.id)}
+                    disabled={redeemingId === r.id}
+                    className="btn-primary"
+                    style={{ fontSize: 13, padding: '9px 14px', margin: '0 12px', opacity: redeemingId === r.id ? 0.5 : 1, flexShrink: 0 }}
+                  >
+                    {redeemingId === r.id ? '…' : 'Redeem ✓'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Reward path */}
         <RewardPath household={household}/>
 
@@ -194,11 +277,11 @@ export default function ParentHome() {
           <ActionTile to="/memories" emoji="📷" title="Memory book"
             subtitle="Past days"/>
           <ActionTile to="/rewards/build" emoji="🏗️" title="Build rewards"
-            subtitle="New path options"/>
+            subtitle={`Give ${child?.name || 'them'} choices`}/>
           <ActionTile to="/reward-history" emoji="🏅" title="Reward history"
             subtitle="Track redemptions"/>
           <ActionTile to="/rewards" emoji="🎁" title="Edit rewards"
-            subtitle="Free-form edit"/>
+            subtitle="Names & thresholds"/>
           <ActionTile to="/family" emoji="👨‍👩‍👧" title="Family"
             subtitle="People & settings"/>
         </div>
@@ -225,6 +308,7 @@ export default function ParentHome() {
 function RewardPath({ household }) {
   const path = household?.rewardsPath || []
   const coins = household?.currentCoins || 0
+  const complete = !!household?.rewardsPathComplete
   const [expanded, setExpanded] = useState(null)
   if (path.length === 0) return null
 
@@ -237,6 +321,19 @@ function RewardPath({ household }) {
             ⭐ {coins} star{coins === 1 ? '' : 's'}
           </div>
         </div>
+
+        {complete && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            borderRadius: 12, padding: '10px 12px', marginBottom: 16,
+            background: 'rgba(255,213,132,0.08)', border: '1px solid rgba(255,213,132,0.3)',
+          }}>
+            <span style={{ fontSize: 20 }}>✓</span>
+            <span style={{ fontSize: 13, color: 'var(--text-soft)' }}>
+              All rewards below are earned — {coins} bonus star{coins === 1 ? '' : 's'} banked for the next path
+            </span>
+          </div>
+        )}
 
         {path.map((r, i) => {
           const prevThreshold = i === 0 ? 0 : path[i - 1].threshold

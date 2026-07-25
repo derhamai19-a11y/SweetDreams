@@ -11,6 +11,7 @@ import FeelingStep from './steps/FeelingStep'
 import ProudStep from './steps/ProudStep'
 import GratefulStep from './steps/GratefulStep'
 import MemoryStep from './steps/MemoryStep'
+import GrowthStep from './steps/GrowthStep'
 import GoalStep from './steps/GoalStep'
 import GoodnightStep from './steps/GoodnightStep'
 
@@ -22,21 +23,29 @@ const STEPS = [
   'proud',
   'grateful',
   'memory',
+  'growth',
   'goal',
   'goodnight',
 ]
 
 export default function ReviewFlow() {
-  const { householdId, household, child, achievements, tonightPrep } = useHousehold()
+  const { householdId, household, child, achievements: liveAchievements, tonightPrep } = useHousehold()
   const nav = useNavigate()
+
+  // Freeze the achievement list for the duration of this review — it's queried
+  // as "uncollected", so it would otherwise empty out mid-flow once the
+  // Achievements step marks them collected, breaking later steps like Proud.
+  const [achievements] = useState(() => liveAchievements)
 
   const [stepIndex, setStepIndex] = useState(0)
   const [reviewData, setReviewData] = useState({
     feeling: null,
+    feelingReason: null,
     feelingNote: null,
     proudMoment: null,
     gratefulFor: null,
     memoryPhotoUrl: null,
+    growthNote: null,
   })
   const [submitting, setSubmitting] = useState(false)
   const [confirmExit, setConfirmExit] = useState(false)
@@ -81,25 +90,30 @@ export default function ReviewFlow() {
         childId: child.id,
         date: today,
         feeling: reviewData.feeling,
+        feelingReason: reviewData.feelingReason,
         feelingNote: reviewData.feelingNote,
         proudMoment: reviewData.proudMoment,
         gratefulFor: reviewData.gratefulFor,
         memoryPhotoUrl: reviewData.memoryPhotoUrl,
+        growthNote: reviewData.growthNote,
         tomorrowsGoal: tonightPrep?.tomorrowsGoal || null,
         completedAt: serverTimestamp(),
       })
 
       const path = household?.rewardsPath || []
       const coins = household?.currentCoins || 0
-      const lastReward = path[path.length - 1]
-      if (lastReward && coins >= lastReward.threshold) {
+      const earnedThisCycle = household?.earnedThisCycle || []
+      // Award each reward the moment its own threshold is crossed, not just
+      // when the whole path is finished — so it shows up in Reward history right away.
+      const newlyEarned = path.filter(r => coins >= r.threshold && !earnedThisCycle.includes(r.id))
+
+      if (newlyEarned.length > 0) {
+        const lastReward = path[path.length - 1]
+        const cycleComplete = !!lastReward && coins >= lastReward.threshold
         const cycleNumber = (household?.pathCycle || 0) + 1
+
         const earnBatch = writeBatch(db)
-        earnBatch.update(doc(db, 'households', householdId), {
-          currentCoins: coins - lastReward.threshold,
-          pathCycle: increment(1),
-        })
-        path.forEach(r => {
+        newlyEarned.forEach(r => {
           const earnRef = doc(collection(db, 'rewardEarned'))
           earnBatch.set(earnRef, {
             householdId,
@@ -112,6 +126,14 @@ export default function ReviewFlow() {
             redeemed: false,
             redeemedAt: null,
           })
+        })
+        earnBatch.update(doc(db, 'households', householdId), cycleComplete ? {
+          currentCoins: coins - lastReward.threshold,
+          pathCycle: increment(1),
+          earnedThisCycle: [],
+          rewardsPathComplete: true,
+        } : {
+          earnedThisCycle: [...earnedThisCycle, ...newlyEarned.map(r => r.id)],
         })
         await earnBatch.commit()
       }
@@ -153,6 +175,7 @@ export default function ReviewFlow() {
       {step === 'proud'        && <ProudStep {...stepProps}/>}
       {step === 'grateful'     && <GratefulStep {...stepProps}/>}
       {step === 'memory'       && <MemoryStep {...stepProps}/>}
+      {step === 'growth'       && <GrowthStep {...stepProps}/>}
       {step === 'goal'         && <GoalStep {...stepProps}/>}
       {step === 'goodnight'    && <GoodnightStep {...stepProps}/>}
 

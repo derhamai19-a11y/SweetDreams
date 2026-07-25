@@ -35,16 +35,39 @@ export const FEELINGS = [
   { id: 'scared', emoji: '😨', label: 'Scared', color: '#B19CD9' },
 ]
 
-export const PROUD_PRESETS = [
-  { emoji: '🧩', label: 'I tried something hard' },
-  { emoji: '🤝', label: 'I shared with someone' },
-  { emoji: '🦁', label: 'I was brave' },
-  { emoji: '🍽️', label: 'I tried new food' },
-  { emoji: '🎨', label: 'I made something' },
-  { emoji: '🤗', label: 'I was kind' },
-  { emoji: '💪', label: "I didn't give up" },
-  { emoji: '🧹', label: 'I helped tidy up' },
-]
+// Reason cards shown on the mood step, keyed by feeling id. Every list gets an
+// "Other" tile appended in FeelingStep so there's always a freeform escape hatch.
+export const FEELING_REASONS = {
+  happy: [
+    { id: 'fun', emoji: '🎉', label: 'Had fun' },
+    { id: 'friends', emoji: '👫', label: 'Time with friends' },
+    { id: 'family', emoji: '❤️', label: 'Family time' },
+    { id: 'proud', emoji: '⭐', label: 'Proud of something I did' },
+    { id: 'treat', emoji: '🍦', label: 'A treat or surprise' },
+  ],
+  angry: [
+    { id: 'pretend', emoji: '💥', label: 'Pretending' },
+    { id: 'mean', emoji: '😤', label: 'Someone was mean' },
+    { id: 'toldoff', emoji: '🚫', label: 'Got told off' },
+    { id: 'wrong', emoji: '😖', label: "Something didn't go right" },
+  ],
+  sad: [
+    { id: 'missed', emoji: '💔', label: 'Missed someone' },
+    { id: 'unwell', emoji: '🤒', label: 'Not feeling well' },
+    { id: 'tired', emoji: '😴', label: 'Tired' },
+    { id: 'mean', emoji: '😢', label: 'Someone was mean' },
+    { id: 'plan', emoji: '📉', label: "Something didn't go to plan" },
+    { id: 'leftout', emoji: '🙁', label: 'Felt left out' },
+    { id: 'toldoff', emoji: '🚫', label: 'Got told off' },
+  ],
+  scared: [
+    { id: 'dream', emoji: '👻', label: 'A scary dream' },
+    { id: 'new', emoji: '🆕', label: 'Something new' },
+    { id: 'loud', emoji: '🔊', label: 'A loud noise' },
+    { id: 'scaredme', emoji: '😱', label: 'Someone scared me' },
+    { id: 'pretend', emoji: '🎭', label: 'Playing pretend' },
+  ],
+}
 
 export const DEFAULT_REWARDS = [
   { id: '1', name: 'Ice Cream Treat', emoji: '🍦', threshold: 5,  unlocked: false },

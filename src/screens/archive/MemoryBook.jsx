@@ -160,8 +160,10 @@ function MemoryDetail({ review, onClose, onDelete }) {
               <span style={{ fontSize: 15, color: feeling.color }}>{feeling.label}</span>
             </Row>
           )}
+          {review.feelingReason && <Row label="Because">{review.feelingReason}</Row>}
           {review.feelingNote && <Row label="Why">{review.feelingNote}</Row>}
           {review.proudMoment && <Row label="Proud of">{review.proudMoment}</Row>}
+          {review.growthNote && <Row label="Growing">{review.growthNote}</Row>}
           {review.tomorrowsGoal && <Row label="Goal">{review.tomorrowsGoal}</Row>}
         </div>
 
