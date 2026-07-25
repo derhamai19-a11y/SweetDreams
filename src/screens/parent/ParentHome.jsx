@@ -4,13 +4,14 @@ import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useAuth } from '../../contexts/AuthContext'
 import { useHousehold } from '../../contexts/HouseholdContext'
-import { AVATAR_MAP, CATEGORIES, CATEGORY_MAP } from '../../utils/constants'
+import { AVATAR_MAP, CATEGORIES, resolveAchievementDisplay } from '../../utils/constants'
+import { getTonightsAreas } from '../../utils/development'
 import Page from '../../components/Page'
 import MoonLogo from '../../components/MoonLogo'
 
 export default function ParentHome() {
   const { adultProfile, signOut } = useAuth()
-  const { household, child, achievements, tonightPrep, unredeemedRewards } = useHousehold()
+  const { household, child, achievements, tonightPrep, unredeemedRewards, developmentAreas } = useHousehold()
   const nav = useNavigate()
   const [editing, setEditing] = useState(null)
   const [redeemingId, setRedeemingId] = useState(null)
@@ -21,6 +22,11 @@ export default function ParentHome() {
     (tonightPrep.memoryPhotoOptions?.length > 0) ||
     !!tonightPrep.tomorrowsGoal
   )
+
+  const tonightsAreas = getTonightsAreas(developmentAreas, household?.developmentRotationIndex || 0)
+  const tonightsAreasHint = tonightsAreas.length > 0
+    ? `Today: ${tonightsAreas.map(a => a.kidLabel).join(', ')}`
+    : null
 
   const openEdit = (achievement) => {
     setEditing({
@@ -173,13 +179,13 @@ export default function ParentHome() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {achievements.map(a => {
-                const cat = CATEGORY_MAP[a.category]
+                const disp = resolveAchievementDisplay(a, developmentAreas)
                 return (
                   <div key={a.id} className="card" style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '12px 14px',
-                    background: `${cat?.color}11`,
-                    borderColor: `${cat?.color}44`,
+                    background: `${disp.color}11`,
+                    borderColor: `${disp.color}44`,
                   }}>
                     {a.photoUrl ? (
                       <img src={a.photoUrl} alt=""
@@ -188,10 +194,10 @@ export default function ParentHome() {
                           objectFit: 'cover',
                         }}/>
                     ) : (
-                      <div style={{ fontSize: 28, flexShrink: 0 }}>{a.emoji || cat?.emoji}</div>
+                      <div style={{ fontSize: 28, flexShrink: 0 }}>{a.emoji || disp.emoji}</div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: cat?.color }}>{cat?.label}</div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: disp.color }}>{disp.label}</div>
                       {a.note && (
                         <div style={{
                           fontSize: 12, color: 'var(--text-soft)',
@@ -282,6 +288,8 @@ export default function ParentHome() {
             subtitle="Track redemptions"/>
           <ActionTile to="/rewards" emoji="🎁" title="Edit rewards"
             subtitle="Names & thresholds"/>
+          <ActionTile to="/growth" emoji="🌱" title="Growth tracker"
+            subtitle={tonightsAreasHint || 'Milestones & progress'}/>
           <ActionTile to="/family" emoji="👨‍👩‍👧" title="Family"
             subtitle="People & settings"/>
         </div>

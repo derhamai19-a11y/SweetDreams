@@ -13,6 +13,7 @@ export function HouseholdProvider({ children }) {
   const [achievements, setAchievements] = useState([])
   const [tonightPrep, setTonightPrep] = useState(null)
   const [unredeemedRewards, setUnredeemedRewards] = useState([])
+  const [developmentAreas, setDevelopmentAreas] = useState(null) // null = not loaded yet, [] = loaded and empty
   const [loading, setLoading] = useState(true)
 
   const householdId = adultProfile?.householdId
@@ -80,6 +81,21 @@ export function HouseholdProvider({ children }) {
     return unsub
   }, [householdId])
 
+  // Growth tracker areas
+  useEffect(() => {
+    if (!householdId) return
+    const q = query(collection(db, 'developmentAreas'), where('householdId', '==', householdId))
+    const unsub = onSnapshot(q, (snap) => {
+      // Seed data carries its own semantic `id` (e.g. 'literacy') used to match
+      // achievements' areaId — keep the real Firestore doc id separate as docId
+      // so writes always target the right document.
+      const items = snap.docs.map(d => ({ ...d.data(), docId: d.id }))
+      items.sort((a, b) => (a.order || 0) - (b.order || 0))
+      setDevelopmentAreas(items)
+    })
+    return unsub
+  }, [householdId])
+
   // Tonight's prep (today's date)
   useEffect(() => {
     if (!householdId) return
@@ -98,7 +114,7 @@ export function HouseholdProvider({ children }) {
 
   return (
     <HouseholdContext.Provider value={{
-      household, adults, child, achievements, tonightPrep, unredeemedRewards, loading, householdId
+      household, adults, child, achievements, tonightPrep, unredeemedRewards, developmentAreas, loading, householdId
     }}>
       {children}
     </HouseholdContext.Provider>

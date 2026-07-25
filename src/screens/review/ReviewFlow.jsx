@@ -29,7 +29,7 @@ const STEPS = [
 ]
 
 export default function ReviewFlow() {
-  const { householdId, household, child, achievements: liveAchievements, tonightPrep } = useHousehold()
+  const { householdId, household, child, achievements: liveAchievements, tonightPrep, developmentAreas } = useHousehold()
   const nav = useNavigate()
 
   // Freeze the achievement list for the duration of this review — it's queried
@@ -100,6 +100,11 @@ export default function ReviewFlow() {
         completedAt: serverTimestamp(),
       })
 
+      // Advance which growth areas rotate into focus next
+      await updateDoc(doc(db, 'households', householdId), {
+        developmentRotationIndex: increment(1),
+      })
+
       const path = household?.rewardsPath || []
       const coins = household?.currentCoins || 0
       const earnedThisCycle = household?.earnedThisCycle || []
@@ -153,7 +158,7 @@ export default function ReviewFlow() {
 
   const stepProps = {
     next, prev, update, data: reviewData,
-    child, household, achievements, tonightPrep,
+    child, household, achievements, tonightPrep, developmentAreas,
     onCompleteAchievements: completeAchievements,
     onCompleteReview: completeReview,
     submitting,

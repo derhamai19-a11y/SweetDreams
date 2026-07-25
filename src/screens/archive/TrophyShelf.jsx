@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useHousehold } from '../../contexts/HouseholdContext'
-import { CATEGORIES, CATEGORY_MAP } from '../../utils/constants'
+import { CATEGORIES, resolveAchievementDisplay } from '../../utils/constants'
 import Page from '../../components/Page'
 
 export default function TrophyShelf() {
-  const { householdId, child } = useHousehold()
+  const { householdId, child, developmentAreas } = useHousehold()
   const nav = useNavigate()
   const [items, setItems] = useState([])
   const [filter, setFilter] = useState('all')
@@ -30,12 +30,15 @@ export default function TrophyShelf() {
     return unsub
   }, [householdId])
 
-  const filtered = filter === 'all' ? items : items.filter(i => i.category === filter)
-  
+  const filtered = filter === 'all' ? items
+    : filter === 'growth' ? items.filter(i => !!i.areaId)
+    : items.filter(i => i.category === filter)
+
   const counts = CATEGORIES.reduce((acc, c) => {
     acc[c.id] = items.filter(i => i.category === c.id).length
     return acc
   }, {})
+  const growthCount = items.filter(i => !!i.areaId).length
 
   const fmtDate = (ts) => {
     if (!ts?.seconds) return ''
@@ -68,6 +71,10 @@ export default function TrophyShelf() {
                 label={c.label} count={counts[c.id]} emoji={c.emoji} color={c.color}/>
             )
           ))}
+          {growthCount > 0 && (
+            <FilterPill active={filter === 'growth'} onClick={() => setFilter('growth')}
+              label="Growth" count={growthCount} emoji="🌱" color="#8FD9C4"/>
+          )}
         </div>
         
         {loading ? (
@@ -86,11 +93,11 @@ export default function TrophyShelf() {
             gap: 10, marginTop: 20,
           }}>
             {filtered.map(item => {
-              const cat = CATEGORY_MAP[item.category]
+              const cat = resolveAchievementDisplay(item, developmentAreas)
               return (
                 <button key={item.id} onClick={() => setSelected(item)}
                   style={{
-                    background: item.photoUrl 
+                    background: item.photoUrl
                       ? `url(${item.photoUrl}) center/cover`
                       : `linear-gradient(135deg, ${cat?.color}33, ${cat?.color}11)`,
                     border: `1px solid ${cat?.color}55`,
@@ -99,13 +106,13 @@ export default function TrophyShelf() {
                     display: 'flex', flexDirection: 'column',
                   }}>
                   {!item.photoUrl && (
-                    <div style={{ 
+                    <div style={{
                       position: 'absolute', inset: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 56,
                     }}>{cat?.emoji}</div>
                   )}
-                  <div style={{ 
+                  <div style={{
                     marginTop: 'auto', padding: '24px 10px 8px',
                     background: 'linear-gradient(to top, rgba(15,23,41,0.95), transparent)',
                     color: 'white', textAlign: 'left',
@@ -123,7 +130,7 @@ export default function TrophyShelf() {
         )}
       </div>
       
-      {selected && <TrophyDetail item={selected} child={child} onClose={() => setSelected(null)}/>}
+      {selected && <TrophyDetail item={selected} child={child} developmentAreas={developmentAreas} onClose={() => setSelected(null)}/>}
     </Page>
   )
 }
@@ -149,8 +156,8 @@ function FilterPill({ active, onClick, label, count, emoji, color }) {
   )
 }
 
-function TrophyDetail({ item, child, onClose }) {
-  const cat = CATEGORY_MAP[item.category]
+function TrophyDetail({ item, child, developmentAreas, onClose }) {
+  const cat = resolveAchievementDisplay(item, developmentAreas)
   const fmtDate = (ts) => {
     if (!ts?.seconds) return ''
     return new Date(ts.seconds * 1000).toLocaleDateString(undefined, { 

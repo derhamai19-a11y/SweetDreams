@@ -67,5 +67,12 @@ service cloud.firestore {
       allow update: if isSignedIn() && isHouseholdMember(resource.data.householdId);
       allow delete: if isAdmin(resource.data.householdId);
     }
+
+    match /developmentAreas/{areaId} {
+      allow read: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow create: if isSignedIn() && isHouseholdMember(request.resource.data.householdId);
+      allow update: if isSignedIn() && isHouseholdMember(resource.data.householdId);
+      allow delete: if isAdmin(resource.data.householdId);
+    }
   }
 }

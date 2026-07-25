@@ -11,6 +11,34 @@ export const CATEGORIES = [
 
 export const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c]))
 
+const GROWTH_COLOR = '#8FD9C4'
+
+// Achievements come from two sources now: the fixed category list above, or a
+// Growth tracker area (development.js). This resolves either into the same
+// {emoji, label, color, description} shape so achievement cards, the review
+// steps, and the home screen don't need to branch on which one it was.
+export function resolveAchievementDisplay(achievement, developmentAreas = []) {
+  if (achievement.category) {
+    const cat = CATEGORY_MAP[achievement.category]
+    return {
+      emoji: cat?.emoji || '⭐',
+      label: cat?.label || 'Achievement',
+      color: cat?.color || 'var(--star-gold)',
+      description: cat?.description || '',
+    }
+  }
+  if (achievement.areaId) {
+    const area = (developmentAreas || []).find(a => a.id === achievement.areaId)
+    return {
+      emoji: area?.kidEmoji || '🌱',
+      label: area?.kidLabel || 'Growing',
+      color: GROWTH_COLOR,
+      description: 'Grew a new skill',
+    }
+  }
+  return { emoji: '⭐', label: 'Achievement', color: 'var(--star-gold)', description: '' }
+}
+
 export const AVATARS = [
   { id: 'bear',     emoji: '🐻', label: 'Bear' },
   { id: 'fox',      emoji: '🦊', label: 'Fox' },

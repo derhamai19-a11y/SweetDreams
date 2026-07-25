@@ -16,6 +16,7 @@ import TonightPrep from './screens/parent/TonightPrep'
 import FamilySettings from './screens/parent/FamilySettings'
 import RewardsManager from './screens/parent/RewardsManager'
 import RewardBuilder from './screens/parent/RewardBuilder'
+import GrowthTracker from './screens/parent/GrowthTracker'
 
 import ReviewFlow from './screens/review/ReviewFlow'
 import RewardChooser from './screens/review/RewardChooser'
@@ -93,6 +94,9 @@ function AppRoutes() {
       } />
       <Route path="/rewards/choose" element={
         <Protected><NeedsChild><RewardChooser /></NeedsChild></Protected>
+      } />
+      <Route path="/growth" element={
+        <Protected><NeedsChild><GrowthTracker /></NeedsChild></Protected>
       } />
 
       <Route path="/review" element={

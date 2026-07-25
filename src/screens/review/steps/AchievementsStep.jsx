@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { CATEGORY_MAP } from '../../../utils/constants'
+import { resolveAchievementDisplay } from '../../../utils/constants'
 import Page from '../../../components/Page'
 
-export default function AchievementsStep({ achievements, child, onCompleteAchievements }) {
+export default function AchievementsStep({ achievements, child, developmentAreas, onCompleteAchievements }) {
   const [collected, setCollected] = useState([])
   const [showingDetail, setShowingDetail] = useState(null)
   const [coinsFlying, setCoinsFlying] = useState(false)
@@ -61,18 +61,18 @@ export default function AchievementsStep({ achievements, child, onCompleteAchiev
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
           {achievements.map(a => {
-            const cat = CATEGORY_MAP[a.category]
+            const disp = resolveAchievementDisplay(a, developmentAreas)
             const isCollected = collected.includes(a.id)
             return (
               <button key={a.id} onClick={() => handleCollect(a)}
                 disabled={isCollected}
-                style={{ 
+                style={{
                   position: 'relative',
                   minHeight: 130, padding: 16,
-                  background: isCollected 
-                    ? 'rgba(255,244,218,0.04)' 
-                    : `linear-gradient(135deg, ${cat?.color}33, ${cat?.color}11)`,
-                  border: '2px solid ' + (isCollected ? 'var(--border)' : cat?.color + '66'),
+                  background: isCollected
+                    ? 'rgba(255,244,218,0.04)'
+                    : `linear-gradient(135deg, ${disp.color}33, ${disp.color}11)`,
+                  border: '2px solid ' + (isCollected ? 'var(--border)' : disp.color + '66'),
                   borderRadius: 'var(--radius-lg)',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                   transition: 'all 0.3s',
@@ -83,7 +83,7 @@ export default function AchievementsStep({ achievements, child, onCompleteAchiev
                 }}>
                 {isCollected && <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 18 }}>✓</div>}
                 <div style={{ fontSize: 44 }}>{isCollected ? '📭' : '🎁'}</div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{cat?.label}</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{disp.label}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-soft)' }}>from {a.loggedByName}</div>
               </button>
             )
@@ -91,7 +91,7 @@ export default function AchievementsStep({ achievements, child, onCompleteAchiev
         </div>
 
         {allCollected && (
-          <button onClick={onCompleteAchievements} className="btn-primary" style={{ 
+          <button onClick={onCompleteAchievements} className="btn-primary" style={{
             width: '100%', marginTop: 32, fontSize: 18, animation: 'fadeIn 0.5s ease',
           }}>
             See my path ✨
@@ -101,7 +101,7 @@ export default function AchievementsStep({ achievements, child, onCompleteAchiev
 
       {/* Detail modal */}
       {showingDetail && (
-        <AchievementDetail achievement={showingDetail} onClose={closeDetail} child={child}/>
+        <AchievementDetail achievement={showingDetail} onClose={closeDetail} child={child} developmentAreas={developmentAreas}/>
       )}
 
       {coinsFlying && <CoinShower count={showingDetail?.coinsValue || 1}/>}
@@ -109,8 +109,8 @@ export default function AchievementsStep({ achievements, child, onCompleteAchiev
   )
 }
 
-function AchievementDetail({ achievement, onClose, child }) {
-  const cat = CATEGORY_MAP[achievement.category]
+function AchievementDetail({ achievement, onClose, child, developmentAreas }) {
+  const cat = resolveAchievementDisplay(achievement, developmentAreas)
   return (
     <div onClick={onClose} style={{ 
       position: 'fixed', inset: 0, zIndex: 100,

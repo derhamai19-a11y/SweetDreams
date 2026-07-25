@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { CATEGORY_MAP } from '../../../utils/constants'
+import { resolveAchievementDisplay } from '../../../utils/constants'
 import Page from '../../../components/Page'
 
-export default function ProudStep({ next, update, data, achievements }) {
+export default function ProudStep({ next, update, data, achievements, developmentAreas }) {
   const [showCustom, setShowCustom] = useState(false)
   const [customText, setCustomText] = useState('')
 
@@ -36,8 +36,8 @@ export default function ProudStep({ next, update, data, achievements }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           {list.map(a => {
-            const cat = CATEGORY_MAP[a.category]
-            const label = cat?.label + (a.note ? `: ${a.note}` : '')
+            const disp = resolveAchievementDisplay(a, developmentAreas)
+            const label = disp.label + (a.note ? `: ${a.note}` : '')
             const selected = data.proudMoment === label
             return (
               <button key={a.id} onClick={() => pick(label)}
@@ -47,13 +47,13 @@ export default function ProudStep({ next, update, data, achievements }) {
                   ...(selected ? { transform: 'scale(1.04)' } : {})
                 }}>
                 {a.photoUrl ? (
-                  <img src={a.photoUrl} alt={cat?.label}
+                  <img src={a.photoUrl} alt={disp.label}
                     style={{ width: 52, height: 52, borderRadius: 12, objectFit: 'cover' }}/>
                 ) : (
-                  <div style={{ fontSize: 42 }}>{cat?.emoji}</div>
+                  <div style={{ fontSize: 42 }}>{disp.emoji}</div>
                 )}
                 <div style={{ fontSize: 13, fontWeight: 600, textAlign: 'center', lineHeight: 1.3 }}>
-                  {cat?.label}
+                  {disp.label}
                 </div>
               </button>
             )
