@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /households/{householdId}/{allPaths=**} {
+      // Member of the household this path belongs to.
+      function isHouseholdMember() {
+        return request.auth != null &&
+          firestore.exists(/databases/(default)/documents/adults/$(request.auth.uid)) &&
+          firestore.get(/databases/(default)/documents/adults/$(request.auth.uid)).data.householdId == householdId;
+      }
+      // A brand-new user hasn't got an adults/households doc yet during signup,
+      // but their eventual household id is their own uid — let them upload into
+      // that path before it exists. See src/screens/setup/HouseholdSetup.jsx.
+      function isOwnFutureHousehold() {
+        return request.auth != null && request.auth.uid == householdId;
+      }
+      allow read: if isHouseholdMember() || isOwnFutureHousehold();
+      allow write: if (isHouseholdMember() || isOwnFutureHousehold()) &&
+        request.resource.size < 5 * 1024 * 1024;
+    }
+  }
+}
