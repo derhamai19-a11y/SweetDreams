@@ -153,6 +153,22 @@ function MemoryDetail({ review, onClose, onDelete }) {
           }}/>
         )}
 
+        {review.bookPhotoUrl && (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 16 }}>
+            <div style={{
+              width: 80, height: 80, flexShrink: 0, borderRadius: 12,
+              background: `url(${review.bookPhotoUrl}) center/cover`,
+              border: '2px solid var(--border)',
+            }}/>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Bedtime story
+              </div>
+              <div style={{ fontSize: 15, color: 'var(--text)', marginTop: 2 }}>{review.bookTitle}</div>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 20 }}>
           {feeling && (
             <Row label="Feeling">
@@ -164,6 +180,7 @@ function MemoryDetail({ review, onClose, onDelete }) {
           {review.feelingNote && <Row label="Why">{review.feelingNote}</Row>}
           {review.proudMoment && <Row label="Proud of">{review.proudMoment}</Row>}
           {review.growthNote && <Row label="Growing">{review.growthNote}</Row>}
+          {review.bookTitle && !review.bookPhotoUrl && <Row label="Bedtime story">{review.bookTitle}</Row>}
           {review.tomorrowsGoal && <Row label="Goal">{review.tomorrowsGoal}</Row>}
         </div>
 

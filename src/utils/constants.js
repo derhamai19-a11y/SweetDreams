@@ -104,3 +104,18 @@ export const DEFAULT_REWARDS = [
 ]
 
 export const FRIEND_AVATAR = { id: 'friend', emoji: '🧒', label: 'A Friend', isGeneric: true }
+
+// Rotating recall questions for the Bedtime Story step — asked about the
+// previous night's book to get him thinking back on it before picking tonight's.
+export const STORY_QUESTIONS = [
+  'Who was your favourite character?',
+  'What was your favourite part?',
+  'Was anyone in the story happy, sad, scared, or angry?',
+  'Did anything funny happen?',
+  'What happened at the very end?',
+  'Was there a word in the story you really liked?',
+  'What happened in the story?',
+  "Did it remind you of anything that's happened to you?",
+  'How did it make you feel?',
+  'Does it remind you of any other stories?',
+]

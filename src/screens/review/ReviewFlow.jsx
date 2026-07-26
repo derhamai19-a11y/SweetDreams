@@ -13,6 +13,7 @@ import GratefulStep from './steps/GratefulStep'
 import MemoryStep from './steps/MemoryStep'
 import GrowthStep from './steps/GrowthStep'
 import GoalStep from './steps/GoalStep'
+import BedtimeStoryStep from './steps/BedtimeStoryStep'
 import GoodnightStep from './steps/GoodnightStep'
 
 const STEPS = [
@@ -25,6 +26,7 @@ const STEPS = [
   'memory',
   'growth',
   'goal',
+  'story',
   'goodnight',
 ]
 
@@ -46,6 +48,8 @@ export default function ReviewFlow() {
     gratefulFor: null,
     memoryPhotoUrl: null,
     growthNote: null,
+    bookTitle: null,
+    bookPhotoUrl: null,
   })
   const [submitting, setSubmitting] = useState(false)
   const [confirmExit, setConfirmExit] = useState(false)
@@ -96,14 +100,30 @@ export default function ReviewFlow() {
         gratefulFor: reviewData.gratefulFor,
         memoryPhotoUrl: reviewData.memoryPhotoUrl,
         growthNote: reviewData.growthNote,
+        bookTitle: reviewData.bookTitle,
+        bookPhotoUrl: reviewData.bookPhotoUrl,
         tomorrowsGoal: tonightPrep?.tomorrowsGoal || null,
         completedAt: serverTimestamp(),
       })
 
-      // Advance which growth areas rotate into focus next
-      await updateDoc(doc(db, 'households', householdId), {
+      // Advance which growth areas rotate into focus next, and roll the
+      // bedtime-story recall forward to tonight's book (if one was logged).
+      const householdUpdate = {
         developmentRotationIndex: increment(1),
-      })
+        bedtimeStoryQuestionIndex: increment(1),
+      }
+      if (reviewData.bookTitle) {
+        const existingTitles = household?.bookTitleHistory || []
+        householdUpdate.bookTitleHistory = [
+          reviewData.bookTitle,
+          ...existingTitles.filter(t => t !== reviewData.bookTitle),
+        ].slice(0, 60)
+        householdUpdate.lastBedtimeStory = {
+          title: reviewData.bookTitle,
+          photoUrl: reviewData.bookPhotoUrl || null,
+        }
+      }
+      await updateDoc(doc(db, 'households', householdId), householdUpdate)
 
       const path = household?.rewardsPath || []
       const coins = household?.currentCoins || 0
@@ -158,7 +178,7 @@ export default function ReviewFlow() {
 
   const stepProps = {
     next, prev, update, data: reviewData,
-    child, household, achievements, tonightPrep, developmentAreas,
+    child, household, householdId, achievements, tonightPrep, developmentAreas,
     onCompleteAchievements: completeAchievements,
     onCompleteReview: completeReview,
     submitting,
@@ -182,6 +202,7 @@ export default function ReviewFlow() {
       {step === 'memory'       && <MemoryStep {...stepProps}/>}
       {step === 'growth'       && <GrowthStep {...stepProps}/>}
       {step === 'goal'         && <GoalStep {...stepProps}/>}
+      {step === 'story'        && <BedtimeStoryStep {...stepProps}/>}
       {step === 'goodnight'    && <GoodnightStep {...stepProps}/>}
 
       {/* Exit confirmation */}

@@ -20,7 +20,10 @@ service cloud.firestore {
     match /households/{householdId} {
       allow read: if isHouseholdMember(householdId);
       allow create: if isSignedIn();
-      allow update: if isAdmin(householdId);
+      // Any household member can update (coins, reviews, rewards path etc. all
+      // write here during normal app use) — admin-only edits like rewards path
+      // structure are gated in the UI, not here. Delete stays admin-only.
+      allow update: if isHouseholdMember(householdId);
       allow delete: if isAdmin(householdId);
     }
     
